@@ -1,0 +1,271 @@
+import {
+  KEY_ALL_GROUPS,
+  KEY_COUNT_RELOAD_DASHBOARD,
+  KEY_COUNT_RESET_GROUPS,
+  KEY_IS_DEVELOPER_MODE,
+  KEY_IS_IN_PROGRESS,
+  KEY_IS_TEST,
+  KEY_LAST_TIME_POST,
+  KEY_MAX_GROUP_PER_TIME,
+  KEY_POST,
+  KEY_POST_LENGTH,
+  prefix,
+} from "../../../contants/contants.js";
+import {
+  getCurrentGroupNeedPost,
+  getTimeToPostOneGroup,
+  getTotalGroupsNeedPost,
+} from "../helpers/group.js";
+import { getSchedulerWithType } from "../helpers/scheduler.js";
+import {
+  getAllGroupPostedsInStorage,
+  getListGroupsNeedPostInStorage,
+  getSchedulerInStorage,
+} from "../helpers/storage.js";
+import { GM_getValue } from "../utils/api-helper.js";
+import { getTextWithLanguage, logError, random } from "../utils/utils.js";
+
+function getDataSavedHTML({
+  allGroups = [],
+  groupsNeedPost = [],
+  groupsPosted = [],
+  lengthPostedInCurrentTime = 0,
+  isTesting = false,
+  isProcessing = false,
+  isScheduler = false,
+  currentGroup = {},
+  lastTimePost = 0,
+  currentGroupNeedPost = {
+    id: "",
+    groups: [],
+    title: "",
+  },
+  nextTimePost = 0,
+  isDeveloperMode = false,
+  maxGroupPerTime = 0,
+  countResetGroups = 0,
+  countReload = 0,
+  estimatedTotalTime = null,
+}) {
+  /*
+    type of current group: {
+      id_href: string,
+      time: number,
+      status: string //pending, selecting, posting, done
+    }
+  */
+
+  function enabledString(val) {
+    return val
+      ? `<b>${getTextWithLanguage({ vi: "Đang bật", en: "Enabled" })}</b>`
+      : `<b>${getTextWithLanguage({ vi: "Đang tắt", en: "Disabled" })}</b>`;
+  }
+
+  function colorByDisabled(val) {
+    return val ? "var(--tm-text-success)" : "var(--tm-text-danger)";
+  }
+
+  function colorByStatus(status) {
+    switch (status) {
+      case "pending":
+        return "orange";
+      case "selecting":
+        return "blue";
+      case "posting":
+        return "purple";
+      case "done":
+        return "var(--tm-text-success)";
+      default:
+        return "var(--tm-text-primary)";
+    }
+  }
+
+  function getStatusString(status) {
+    switch (status) {
+      case "pending":
+        return getTextWithLanguage({ vi: "Đang chờ", en: "Pending" });
+      case "selecting":
+        return getTextWithLanguage({ vi: "Đang chọn", en: "Selecting" });
+      case "posting":
+        return getTextWithLanguage({ vi: "Đang đăng", en: "Posting" });
+      case "done":
+        return getTextWithLanguage({ vi: "Đã đăng", en: "Done" });
+      default:
+        return status;
+    }
+  }
+
+  const set = new Set();
+  groupsNeedPost.forEach((item) => {
+    for (const it of item.groups) {
+      set.add(it.id_href);
+    }
+  });
+
+  let totalGroupsNeedPost = set.size;
+
+  const totalCurrentGroupsPosted =
+    currentGroupNeedPost?.groups?.filter((group) => {
+      return groupsPosted.includes(group.id_href || group.href || group.id);
+    })?.length || 0;
+
+  const nextTime = new Date(nextTimePost);
+
+  let estimatedTotalTimeText = getTextWithLanguage({
+    vi: "Đang tính toán...",
+    en: "Calculating...",
+  });
+
+  if (estimatedTotalTime) {
+    estimatedTotalTime = Math.ceil(estimatedTotalTime / 60);
+    const minutes = estimatedTotalTime % 60;
+    const hours = Math.floor(estimatedTotalTime / 60);
+    estimatedTotalTimeText = getTextWithLanguage({
+      vi: `${hours} giờ ${minutes} phút`,
+      en: `${hours} hours ${minutes} minutes`,
+    });
+  }
+
+  const forDevHtml = isDeveloperMode
+    ? `
+    <div id="${prefix}is-testing-status">${getTextWithLanguage({ vi: "Đang kiểm thử", en: "Is Testing" })}: <span style="color: ${colorByDisabled(isTesting)};">${enabledString(isTesting)}</span></div>
+          <div id="${prefix}is-developer-mode-status">${getTextWithLanguage({ vi: "Chế độ nhà phát triển", en: "Developer Mode" })}: <span style="color: ${colorByDisabled(isDeveloperMode)};">${enabledString(isDeveloperMode)}</span></div>
+  `
+    : "";
+
+  return `
+        <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 16px;">
+          <div>${getTextWithLanguage({ vi: "Tổng số nhóm", en: "Total Groups" })}: <b>${allGroups.length}</b></div>
+          <div>${getTextWithLanguage({ vi: "Số nhóm cần đăng", en: "Total Groups Need Post" })}: <b>${totalGroupsNeedPost}</b></div>
+          <div>${getTextWithLanguage({ vi: "Số nhóm đã đăng", en: "Total Groups Posted" })}: <b>${groupsPosted.length}</b></div>
+          <div>${getTextWithLanguage({ vi: "Số nhóm hiện tại đang đăng", en: "Total Current Groups Posted" })}: <b>${lengthPostedInCurrentTime}/${maxGroupPerTime}</b></div>
+          <div>${getTextWithLanguage({ vi: "Nhóm hiện tại cần đăng", en: "Total Current Need Post" })}: <b>${currentGroupNeedPost?.groups?.length || 0}</b></div>
+          <div>${getTextWithLanguage({ vi: "Nhóm hiện tại đã đăng", en: "Total Current Groups Posted" })}: <b>${totalCurrentGroupsPosted}</b></div>
+          <div>${getTextWithLanguage({ vi: "Số lần đặt lại nhóm", en: "Count Reset Groups" })}: <b>${countResetGroups}</b></div>
+          <div>${getTextWithLanguage({ vi: "Số lần tải lại trang", en: "Count Reload Dashboard" })}: <b>${countReload}</b></div>
+          <div>${getTextWithLanguage({ vi: "Tên nhóm hiện tại", en: "Current Group title" })}: ${currentGroupNeedPost?.name || currentGroupNeedPost?.title || "N/A"}</div>
+          <div id="${prefix}is-processing-status">${getTextWithLanguage({ vi: "Đang xử lý", en: "Is Processing" })}: <span style="color: ${colorByDisabled(isProcessing)};">${enabledString(isProcessing)}</span></div>
+          <div id="${prefix}is-scheduler-status">${getTextWithLanguage({ vi: "Đang lên lịch", en: "Is Scheduler" })}: <span style="color: ${colorByDisabled(isScheduler)};">${enabledString(isScheduler)}</span></div>
+          ${forDevHtml}
+          <div style="word-break: break-word;">${getTextWithLanguage({ vi: "Nhóm hiện tại", en: "Current Group" })}: ${currentGroup?.id_href || getTextWithLanguage({ en: "Available", vi: "Không có sẵn" })}</div>
+          <div>${getTextWithLanguage({ vi: "Trạng thái nhóm hiện tại", en: "Current Group status" })}: <span style="color: ${colorByStatus(currentGroup?.status)};"> <b>${getStatusString(currentGroup?.status || getTextWithLanguage({ en: "Available", vi: "Không có sẵn" }))}</b></span></div>
+					<div>${getTextWithLanguage({ vi: "Bài đăng gần nhất", en: "Last time post" })}: ${lastTimePost ? new Date(lastTimePost).toLocaleString() : "N/A"}</div>
+          <div>${getTextWithLanguage({ vi: "Thời gian đăng tiếp theo", en: "Next time post" })}: ${nextTimePost ? `${nextTime.getHours()}:${nextTime.getMinutes()}` : "N/A"}</div>
+          <div>${getTextWithLanguage({
+            vi: "Thời gian dự kiến đăng tất cả nhóm",
+            en: "Estimated time to post all groups",
+          })}: <b>${estimatedTotalTimeText}</b></div>
+        </div>
+      `;
+}
+
+async function updateDataSavedInfo() {
+  try {
+    const rootElement = document.querySelector("#tm_root");
+
+    if (!rootElement) return;
+
+    const dataSavedEl = rootElement.querySelector("#tm_data-saved-info");
+    if (dataSavedEl) {
+      const { groups: groupsNeedPost } = await getListGroupsNeedPostInStorage();
+      const scheduler = await getSchedulerInStorage();
+      const allGroups = (await GM_getValue(KEY_ALL_GROUPS)) || [];
+      const groupsPosted = await getAllGroupPostedsInStorage();
+      const isTesting = (await GM_getValue(KEY_IS_TEST)) || false;
+      const isProcessing = (await GM_getValue(KEY_IS_IN_PROGRESS)) || false;
+      const length = (await GM_getValue(KEY_POST_LENGTH)) || 0;
+      const objectTask = (await GM_getValue(KEY_POST)) || {};
+      const lastTimePost = (await GM_getValue(KEY_LAST_TIME_POST)) || 0;
+      const currentGroupNeedPost = await getCurrentGroupNeedPost();
+      const maxGroupPerTime = (await GM_getValue(KEY_MAX_GROUP_PER_TIME)) || 0;
+
+      const listTimePost = await getSchedulerWithType(scheduler.type);
+
+      let currentH = new Date().getHours();
+      let currentM = new Date().getMinutes();
+
+      let nextTime = null;
+
+      let isFound = false;
+
+      for (const time of listTimePost) {
+        const currStr = `${currentH.toString().padStart(2, "0")}${currentM.toString().padStart(2, "0")}`;
+        const str = `${time.h.toString().padStart(2, "0")}${time.m.toString().padStart(2, "0")}`;
+        const currNum = Number(currStr),
+          timeNum = Number(str);
+        if (timeNum > currNum) {
+          isFound = true;
+          nextTime = new Date(
+            new Date().setHours(time?.h || 0, time?.m || 0, 0, 0),
+          ).getTime();
+          break;
+        }
+      }
+
+      if (!isFound) {
+        nextTime = new Date(
+          new Date().setHours(
+            listTimePost[0]?.h || 0,
+            listTimePost[0]?.m || 0,
+            0,
+            0,
+          ),
+        ).getTime();
+      }
+
+      function getSpaceTimePost(scheduler) {
+        switch (scheduler.type) {
+          case "custom-every-hours":
+            return scheduler.valueHours * 60 * 60;
+          case "custom-every-minutes":
+            return scheduler.valueMinutes * 60;
+          case "daily-hours":
+            return 1 * 60 * 60;
+          case "custom-frame-hours":
+            return null;
+          default:
+            return null;
+        }
+      }
+
+      //calulate time estimated total time post
+      const timeToPostOneGroup = await getTimeToPostOneGroup();
+      const timeSpacePost = getSpaceTimePost(scheduler);
+
+      let estimatedTotalTime = null;
+
+      if (timeSpacePost !== undefined && timeSpacePost !== null) {
+        const totalGroupNeedPost = await getTotalGroupsNeedPost();
+
+        estimatedTotalTime =
+          totalGroupNeedPost * timeToPostOneGroup +
+          ((totalGroupNeedPost - groupsPosted.length) / maxGroupPerTime) *
+            timeSpacePost;
+      }
+
+      const html = getDataSavedHTML({
+        allGroups,
+        groupsNeedPost,
+        groupsPosted,
+        lengthPostedInCurrentTime: length,
+        isTesting,
+        isProcessing,
+        isScheduler: scheduler?.isScheduler,
+        currentGroup: objectTask?.task || {},
+        lastTimePost,
+        currentGroupNeedPost,
+        nextTimePost: nextTime,
+        isDeveloperMode: (await GM_getValue(KEY_IS_DEVELOPER_MODE)) || false,
+        maxGroupPerTime,
+        countResetGroups: (await GM_getValue(KEY_COUNT_RESET_GROUPS)) || 0,
+        estimatedTotalTime,
+        countReload: (await GM_getValue(KEY_COUNT_RELOAD_DASHBOARD)) || 0,
+      });
+      dataSavedEl.innerHTML = html;
+    }
+  } catch (error) {
+    logError("Error update data saved info: ", error);
+  }
+}
+
+export { updateDataSavedInfo };

@@ -1,0 +1,315 @@
+* {
+  box-sizing: border-box;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin: 0;
+}
+
+html {
+  height: 100vh;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * Light theme
+ */
+body.light {
+  --tm-bg-primary: #ffffff;
+  --tm-bg-secondary: #f1f2f3;
+  --tm-text-primary: #000000;
+  --tm-text-secondary: #666;
+  --tm-border-color: #cccccc;
+  --tm-toggle-bg: #f1f2f3;
+  --tm-toggle-knob: #8b8b8b;
+  --tm-input-bg: #ffffff;
+  --tm-input-text: #000000;
+  --tm-text-danger: #f6002d;
+  --tm-text-success: #00b14a;
+  --tm-bg-btn-primary: #7b7b7b;
+  --tm-text-btn-primary: #ffffff;
+}
+
+/*
+ * Dark theme
+ */
+body.dark {
+  --tm-bg-primary: #252525;
+  --tm-bg-secondary: #3f3f3f;
+  --tm-text-primary: #ffffff;
+  --tm-text-secondary: #ddd;
+  --tm-border-color: #5f5f5f;
+  --tm-toggle-bg: #4f4f4f;
+  --tm-toggle-knob: #ffffff;
+  --tm-input-bg: #3f3f3f;
+  --tm-input-text: #ffffff;
+  --tm-text-danger: #ef214a;
+  --tm-text-success: #33a02c;
+  --tm-bg-btn-primary: #7b7b7b;
+  --tm-text-btn-primary: #ffffff;
+}
+
+/* header */
+.header {
+  display: flex;
+  border-bottom: 1px solid var(--tm-border-color);
+  padding: 12px;
+  background-color: var(--tm-bg-primary);
+}
+
+.header .tm_logo {
+  background-image: url(../icons/icon-128.png);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  width: 32px;
+  height: 32px;
+}
+
+.header p {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* main */
+.main {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+#tm_root {
+  background: var(--tm-bg-primary);
+  color: var(--tm-text-primary);
+  height: 100%;
+}
+
+#tm_root .tm_inner-root {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  min-height: 200px;
+  height: 100%;
+  position: relative;
+  padding: 18px;
+}
+
+#tm_root .tm_div-dashboard {
+  height: 100%;
+}
+
+#tm_root .tm_advanced-setting {
+  height: 100%;
+}
+
+#tm_root #tm_div-panel-group {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#tm_root #tm_div-panel-group #tm_list-groups-container {
+  overflow: auto;
+}
+
+/* field input, checkbox,... */
+
+#tm_root .tm_field-container {
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#tm_root input {
+  border: var(--tm-border-color);
+  background: var(--tm-input-bg);
+  color: var(--tm-input-text);
+}
+
+#tm_root textarea {
+  background: var(--tm-input-bg);
+  color: var(--tm-input-text);
+  border: 1px solid var(--tm-border-color);
+}
+
+#tm_root input::placeholder {
+  color: var(--tm-text-secondary);
+}
+
+#tm_root .tm_field-container[disabled] * {
+  opacity: 0.6 !important;
+  user-select: none;
+  cursor: not-allowed !important;
+}
+
+#tm_root label {
+  color: var(--tm-text-primary);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+#tm_root h3,
+#tm_root h2,
+#tm_root h4,
+#tm_root h5,
+#tm_root h6 {
+  color: var(--tm-text-primary);
+}
+
+#tm_root .tm_field-container input.tm_input-outline {
+  padding: 4px;
+  outline: none;
+  border: 1px solid var(--tm-border-color);
+  background: var(--tm-input-bg);
+  color: var(--tm-input-text);
+}
+
+#tm_root .tm_field-container.field-checkbox {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+#tm_root button {
+  cursor: pointer;
+  background: var(--tm-bg-btn-primary);
+  color: var(--tm-text-btn-primary);
+  border: 1px solid var(--tm-bg-btn-primary);
+  border-radius: 3px;
+}
+
+#tm_root button.not-style {
+  padding: 4px 8px;
+}
+
+#tm_root button:not(.not-style) {
+  padding: 6px 14px;
+}
+
+.ql-toolbar button {
+  background: none !important;
+  border: none !important;
+  display: inline-block !important;
+  float: left !important;
+  height: 24px !important;
+  padding: 3px 5px !important;
+  width: 28px !important;
+}
+
+#tm_root .tm_btn-fake:hover {
+  text-decoration: underline;
+}
+
+#tm_root button[disabled] {
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+}
+
+body select {
+  border: 1px solid var(--tm-border-color);
+  background: var(--tm-input-bg);
+  color: var(--tm-text-primary);
+}
+
+body select option {
+  color: var(--tm-text-primary);
+  background-color: var(--tm-input-bg);
+}
+
+body select#tm_select-language {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+}
+
+#tm_root .tm_editor-content-class {
+  border: 1px solid var(--tm-border-color);
+}
+
+/* scroll bar*/
+/* Firefox */
+#tm_root .scrollbar-custom {
+  scrollbar-width: thin;
+  scrollbar-color: #8b8b8b #f1f1f1;
+}
+
+/* Chrome, Edge, Safari */
+#tm_root .scrollbar-custom::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+#tm_root .scrollbar-custom::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 999px;
+}
+
+#tm_root .scrollbar-custom::-webkit-scrollbar-thumb,
+#tm_root .scrollbar-custom *::-webkit-scrollbar-thumb {
+  background: #8b8b8b;
+  border-radius: 999px;
+  border: 2px solid #f1f1f1;
+}
+
+#tm_root .scrollbar-custom::-webkit-scrollbar-thumb:hover,
+#tm_root .scrollbar-custom *::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+#tm_root .tm_div-dashboard::-webkit-scrollbar,
+#tm_root .tm_advanced-setting::-webkit-scrollbar,
+#tm_root #tm_div-panel-group #tm_list-groups-container::-webkit-scrollbar {
+  width: 4px !important;
+}
+
+#tm_root .tm_div-dashboard::-webkit-scrollbar-track,
+#tm_root .tm_advanced-setting::-webkit-scrollbar-track,
+#tm_root
+  #tm_div-panel-group
+  #tm_list-groups-container::-webkit-scrollbar-track {
+  background: #dddddd5a !important;
+}
+
+#tm_root .tm_div-dashboard::-webkit-scrollbar-thumb,
+#tm_root .tm_advanced-setting::-webkit-scrollbar-thumb,
+#tm_root
+  #tm_div-panel-group
+  #tm_list-groups-container::-webkit-scrollbar-thumb {
+  background: #ddd !important;
+}
+
+#tm_root .tm_div-dashboard::-webkit-scrollbar-thumb:hover,
+#tm_root .tm_advanced-setting::-webkit-scrollbar-thumb:hover,
+#tm_root
+  #tm_div-panel-group
+  #tm_list-groups-container::-webkit-scrollbar-thumb:hover {
+  background: #ccc !important;
+}
+
+/* footer */
+footer {
+  background: oklch(30.2% 0.056 229.695);
+  color: white;
+  padding: 4px 12px;
+  border-top: 1px solid var(--tm-border-color);
+  text-align: right;
+}

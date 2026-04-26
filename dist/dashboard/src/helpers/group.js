@@ -1,0 +1,516 @@
+import {
+  KEY_GROUPS_POSTED,
+  KEY_GROUPS_NEED_POST,
+  KEY_STOP_TASK,
+  KEY_POST_LENGTH,
+  KEY_INDEXS_GROUP_CHECKED,
+  KEY_IS_SCROLL_DETECT_LIST_GROUP,
+  KEY_ALL_GROUPS,
+  KEY_COUNT_RESET_GROUPS,
+  MAX_GROUP_PER_TIME_INITIAL,
+  KEY_MAX_GROUP_PER_TIME,
+  SELECTOR_VI,
+  SELECTOR,
+  SELECTOR_RAW,
+} from "../../../contants/contants.js";
+import { showNotify } from "../draw_element/notify.js";
+import { GM_getValue, GM_setValue } from "../utils/api-helper.js";
+import {
+  convertCorrectHref,
+  cvString,
+  getLanguage,
+  getListTitle,
+  isCorrectURL,
+  logActions,
+  logError,
+  now,
+  shuffleArray,
+  sleep,
+} from "../utils/utils.js";
+import { findElement, waitForElement } from "./elementDom.js";
+import {
+  getAllGroupPostedsInStorage,
+  getCurrentIndexGroupPost,
+  getDataSavedInStorage,
+  getListGroupsNeedPostInStorage,
+  getRandomIndexGroupChecked,
+  getTimeDelayInStorage,
+} from "./storage.js";
+
+/**
+ * @returns {Promise<Array<{id: string, title: string, name: string, groups: Array<{title: string, id_href: string}>}>>} all groups that need to be posted from saved data (group to be checked)
+ */
+async function getDataGroupsSavedNeedPost() {
+  try {
+    const dataSaveds = (await getDataSavedInStorage()) || [];
+    const indexsChecked = (await GM_getValue(KEY_INDEXS_GROUP_CHECKED)) || [];
+    const list = [];
+
+    for (const data of dataSaveds) {
+      const id = data.id;
+      if (indexsChecked.includes(id)) {
+        list.push(data);
+      }
+    }
+
+    return list;
+  } catch (error) {
+    throw new Error("Error get data group saved need post: " + error);
+  }
+}
+
+/**
+ * Check if all group need post have been posted.
+ * Note: if exist error, also return false, but log error to console
+ *
+ * @returns {Promise<boolean>} true if all group need post have been posted, false if exist group have not been posted or exist error
+ * */
+
+async function isPostedAllGroup() {
+  try {
+    const object = await getListGroupsNeedPostInStorage();
+    const indexsChecked = (await GM_getValue(KEY_INDEXS_GROUP_CHECKED)) || [];
+    const listGroups =
+      object?.groups.filter((gr) => indexsChecked.includes(gr.id)) || [];
+
+    const posteds = await getAllGroupPostedsInStorage();
+    const set = new Set(posteds);
+    for (const need of listGroups) {
+      const groups = need?.groups || [];
+      const isExistPending = groups.some(
+        (gr) => !set.has(gr.id_href) && gr.status === "pending",
+      );
+      if (isExistPending) {
+        return false;
+      }
+    }
+
+    return true;
+  } catch (error) {
+    throw new Error("Error check posted all group: " + error);
+  }
+}
+
+/**
+ * Reset all group need post to pending and save to storage, also reset groups posted and post length
+ */
+async function resetPostedGroupAndSave() {
+  try {
+    const countReset = (await GM_getValue(KEY_COUNT_RESET_GROUPS)) || 0;
+    GM_setValue(KEY_COUNT_RESET_GROUPS, countReset + 1);
+    const object = await getListGroupsNeedPostInStorage();
+    const listGroups = object?.groups || [];
+    const newList = listGroups.map((need) => {
+      const newGrs = (need?.groups || []).map((gr) => ({
+        ...gr,
+        status: "pending",
+      }));
+      return {
+        ...need,
+        groups: shuffleArray(newGrs),
+      };
+    });
+
+    GM_setValue(KEY_POST_LENGTH, 0);
+    GM_setValue(KEY_GROUPS_POSTED, []);
+    GM_setValue(KEY_GROUPS_NEED_POST, { groups: newList, forceChange: false });
+  } catch (error) {
+    throw new Error("Error reset posted group and save: " + error);
+  }
+}
+
+/**
+ *
+ * @param {Array<{id: string, title: string, name: string, groups: Array<{title: string, id_href: string}>}>} list
+ * @param {boolean} forceChange
+ * @returns no return
+ */
+async function setGroupsNeedPost(list, forceChange = false) {
+  try {
+    const isStop = await GM_getValue(KEY_STOP_TASK);
+    if (isStop) {
+      showNotify({
+        type: "error",
+        message: "Stop task -> stop set groups need post",
+      });
+      return;
+    }
+
+    const needPosts = [];
+
+    for (const item of list) {
+      const { id, title, name, groups } = item;
+      const grs = groups.map((gr) => ({
+        id_href: gr.id_href || gr.href,
+        status: "pending",
+      }));
+      needPosts.push({ id, title, name, groups: grs });
+    }
+
+    GM_setValue(KEY_GROUPS_POSTED, []);
+    GM_setValue(KEY_GROUPS_NEED_POST, {
+      groups: needPosts,
+      forceChange: true,
+      time: now(),
+    });
+  } catch (error) {
+    throw new Error("Error set groups need post: " + error);
+  }
+}
+/**
+ *
+ * @param {string} title title to check match with group title
+ * @param {Array<{title: string, href: string}>} listGroups all groups was be detected
+ * @param {Array<string>} titleStrictlyMatch array of string keywords to strictly match title group
+ * @returns {Array<{title: string, id_href: string}>} array of groups that match with title, if not exist return empty array
+ */
+function getGroupsMatch({
+  title = "",
+  listGroups = [],
+  titleStrictlyMatch = "",
+} = {}) {
+  try {
+    const data = [];
+    const listTitle = getListTitle(title);
+    if (!title || !title.trim() || !listTitle.length) {
+      return data;
+    }
+
+    const listTitleStrictlyMatch = getListTitle(titleStrictlyMatch);
+
+    const set = new Set();
+    for (const tit of listTitle) {
+      for (const gr of listGroups) {
+        const convertTitleGroup = cvString(gr.title);
+
+        const isMatchStrictly = !listTitleStrictlyMatch.length
+          ? true
+          : listTitleStrictlyMatch.some((tit) => {
+              return convertTitleGroup.includes(tit);
+            });
+
+        const href = gr.href || gr.id_href;
+
+        if (
+          isMatchStrictly &&
+          convertTitleGroup.includes(tit) &&
+          !set.has(href)
+        ) {
+          set.add(href);
+          data.push(gr);
+        }
+      }
+    }
+
+    return shuffleArray(data);
+  } catch (error) {
+    logError("Error get groups match: " + error);
+    throw new Error("Error get groups match: " + error);
+  }
+}
+
+async function getListElementContainer() {
+  try {
+    const lang = getLanguage();
+
+    let divContainerList = null;
+
+    const selectorsContainerList =
+      lang === "vi"
+        ? SELECTOR_VI.listElementContainers
+        : SELECTOR.listElementContainers;
+
+    for (const selector of selectorsContainerList) {
+      divContainerList = await waitForElement(selector);
+      if (divContainerList) break;
+    }
+
+    let selectorGroupWaitingTexts = SELECTOR_VI.allGroupsJoinTexts;
+    let spanExistGroupWaiting = null;
+    //check have group waiting
+    for (const selector of selectorGroupWaitingTexts) {
+      spanExistGroupWaiting = findElement(selector);
+      if (spanExistGroupWaiting) break;
+    }
+
+    const listItem = await waitForElement(`div[role="listitem"]:last-child`);
+    let listElement = null;
+
+    if (spanExistGroupWaiting) {
+      const parentEl = listItem?.parentElement?.parentElement?.parentElement;
+      listElement =
+        parentEl?.children?.[1] || parentEl?.children?.[0] || parentEl;
+    } else {
+      listElement = listItem?.parentElement;
+    }
+    return listElement;
+  } catch (error) {
+    throw new Error("Error get list element container: " + error);
+  }
+}
+
+function getLastItemElementListGroup(list) {
+  try {
+    if (list instanceof HTMLElement) {
+      return list.children?.[list.children.length - 1];
+    }
+    if (list && Array.isArray(list) && list.length) {
+      return list[list.length - 1];
+    }
+    return null;
+  } catch (error) {
+    throw new Error("Error get last item element in list group: " + error);
+  }
+}
+
+function getAllListItemElement(list) {
+  try {
+    if (list instanceof HTMLElement) {
+      return list.querySelectorAll(SELECTOR_RAW.listItems);
+    }
+    if (list && Array.isArray(list) && list.length) {
+      return list;
+    }
+    return [];
+  } catch (error) {
+    throw new Error("Error get all list item elements: " + error);
+  }
+}
+
+/**
+ * @returns {Promise<Array<{title: string, href: string, time: number}>>}
+ */
+async function getListGroups() {
+  const now = Date.now();
+
+  try {
+    const listElement = await getListElementContainer();
+
+    const isScroll =
+      (await GM_getValue(KEY_IS_SCROLL_DETECT_LIST_GROUP)) || false;
+    if (isScroll) {
+      await scrollDetectListGroups(listElement);
+    } else {
+      const allGroup = await GM_getValue(KEY_ALL_GROUPS);
+      return allGroup || [];
+    }
+
+    const childs = getAllListItemElement(listElement);
+    const list = [];
+    for (const child of childs) {
+      const as = child.querySelectorAll(`a[href][role="link"]`);
+      const a = as[1];
+      if (a) {
+        const title = a.textContent;
+        let href = a.getAttribute("href");
+
+        //convert correct href (maybe have case href end not with / but correct url)
+        href = convertCorrectHref(href);
+
+        if (isCorrectURL(href)) {
+          list.push({ title, href, time: now });
+        }
+      }
+    }
+    return list;
+  } catch (e) {
+    logError("Error get list group: " + e);
+    throw new Error("Error get list group: " + e);
+  }
+}
+
+async function scrollDetectListGroups(listContainer) {
+  try {
+    const lang = getLanguage();
+    const selectorsContainerList =
+      lang === "vi"
+        ? SELECTOR_VI.listElementContainers
+        : SELECTOR.listElementContainers;
+
+    let listElement = null;
+    for (const selector of selectorsContainerList) {
+      listElement = await waitForElement(selector);
+      if (listElement) break;
+    }
+
+    let selectorGroupWaitingTexts = SELECTOR_VI.allGroupsJoinTexts;
+    let h2ExistGroupWaiting = null;
+    //check have group waiting
+    for (const selector of selectorGroupWaitingTexts) {
+      h2ExistGroupWaiting = findElement(selector, listElement);
+      if (h2ExistGroupWaiting) break;
+    }
+
+    let maxGroup = 50;
+
+    if (h2ExistGroupWaiting) {
+      const text = h2ExistGroupWaiting.textContent;
+      const pt = new RegExp(`\\d+`, "i");
+      const match = text.match(pt);
+      if (match) {
+        maxGroup = Number(match[0]);
+      }
+    }
+
+    let i = 0;
+    const duration = 3000;
+    let currentGroup = 0;
+    let lastCountGroup = currentGroup;
+
+    while (i < 10 && currentGroup < maxGroup - 10) {
+      let isStopTask = await GM_getValue(KEY_STOP_TASK);
+      if (isStopTask) {
+        logActions("Stop task -> stop scroll detect list groups");
+        break;
+      }
+
+      const lastItem = getLastItemElementListGroup(listContainer);
+      if (lastItem) {
+        lastItem.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+      lastCountGroup = currentGroup;
+      currentGroup = getAllListItemElement(listContainer)?.length || 0;
+      if (lastCountGroup !== currentGroup) {
+        i = 0;
+      }
+
+      await sleep(duration);
+
+      //log
+      console.log(currentGroup, maxGroup);
+      window.dispatchEvent(new Event("scroll"));
+      ++i;
+    }
+  } catch (error) {
+    throw new Error("Error scroll detect list groups: " + error);
+  }
+}
+
+/**
+ *
+ * @returns Object: { id, title, groups: [ {id_href, status} ] } or null if not exist
+ */
+async function getCurrentGroupNeedPost() {
+  try {
+    const objectList = await getListGroupsNeedPostInStorage();
+    let currentIndexGroup = await getCurrentIndexGroupPost();
+
+    if (!currentIndexGroup) {
+      return null;
+    }
+
+    const listGroups = objectList?.groups || [];
+    const need = listGroups.find((gr) => gr.id === currentIndexGroup);
+    if (need && need.groups) {
+      // need.groups = shuffleArray(need.groups);
+    }
+    return need;
+  } catch (error) {
+    logActions("Error get current groups need post: " + error);
+    throw new Error("Error get current groups need post: " + error);
+  }
+}
+
+/**
+ *
+ * @returns {Promise<{ id, title, contents: string[], files: Blob[] }>} or null if not exist
+ */
+async function getCurrentDataGroupSavedNeedPost() {
+  try {
+    let id = await getCurrentIndexGroupPost();
+    if (!id) {
+      id = await getRandomIndexGroupChecked();
+    }
+    if (!id) {
+      logActions("No group checked -> stop scheduler");
+      return null;
+    }
+    const data = (await getDataSavedInStorage()) || [];
+    return data.find((d) => d.id === id) || null;
+  } catch (error) {
+    logActions("Error get current data group saved need post: " + error);
+    throw new Error("Error get current data group saved need post: " + error);
+  }
+}
+
+/**
+ *
+ * @returns {Promise<{ isPostedAll: boolean, isPostedMaxGroupPerTime: boolean }>}
+ */
+async function checkPostedAllGroupOrMaxGroupPerTime() {
+  let isPostedMaxGroupPerTime = false;
+  let isPostedAll = false;
+  try {
+    const currentLengthPost = (await GM_getValue(KEY_POST_LENGTH)) || 0;
+    const maxGroupPerTime =
+      (await GM_getValue(KEY_MAX_GROUP_PER_TIME)) || MAX_GROUP_PER_TIME_INITIAL;
+    if (currentLengthPost >= maxGroupPerTime || (await isPostedAllGroup())) {
+      if (await isPostedAllGroup()) {
+        isPostedAll = true;
+      } else {
+        isPostedMaxGroupPerTime = true;
+      }
+    }
+  } catch (error) {
+    logError("Error check posted all group or max group per time: ", error);
+  }
+  return { isPostedAll, isPostedMaxGroupPerTime };
+}
+
+/**
+ * Get time delay to post all groups per time (in seconds)
+ * @returns {Promise<number>} - seconds
+ */
+async function getTimeToPostOneGroup() {
+  try {
+    const timeDelay = await getTimeDelayInStorage();
+
+    const totalTimeDelayPost =
+      timeDelay.clickToPost +
+      1 +
+      timeDelay.fillContent +
+      1 +
+      timeDelay.fillFile +
+      1 +
+      timeDelay.openNewTab +
+      1 +
+      timeDelay.post +
+      1;
+    return totalTimeDelayPost + 4;
+  } catch (error) {
+    logActions("Error get time to post one groups: " + error);
+  }
+}
+
+async function getTotalGroupsNeedPost() {
+  try {
+    const data = await getListGroupsNeedPostInStorage();
+    const groupsNeedPost = data?.groups || [];
+    const set = new Set();
+    groupsNeedPost.forEach((group) => {
+      const groups = group?.groups || [];
+      groups.forEach((gr) => {
+        set.add(gr.id_href);
+      });
+    });
+    return set.size;
+  } catch (error) {
+    logError("Error get total groups need post: ", error);
+  }
+  return 0;
+}
+
+export {
+  isPostedAllGroup,
+  resetPostedGroupAndSave,
+  getGroupsMatch,
+  setGroupsNeedPost,
+  getListGroups,
+  scrollDetectListGroups,
+  getDataGroupsSavedNeedPost,
+  getCurrentGroupNeedPost,
+  getCurrentDataGroupSavedNeedPost,
+  checkPostedAllGroupOrMaxGroupPerTime,
+  getTimeToPostOneGroup,
+  getTotalGroupsNeedPost,
+};

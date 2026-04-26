@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css" />
+  <link rel="stylesheet" href="./libs/quill.snow.css" />
+  <link rel="stylesheet" href="./libs/toastify.min.css">
+
+</head>
+
+<body>
+  <header class="header">
+    <div style="flex: 1;">
+      <div class="tm_logo"></div>
+    </div>
+    <div style="display: flex; gap: 24px; align-items: center; padding: 0 12px 0 18px;">
+      <div style="cursor: pointer; display: flex; align-items: center; justify-content: center;"
+        id="tm_btn-change-theme" title="Change theme">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" width="24" height="24" class="tm_svg">
+          <path
+            d="M512 320C512 214 426 128 320 128L320 512C426 512 512 426 512 320zM64 320C64 178.6 178.6 64 320 64C461.4 64 576 178.6 576 320C576 461.4 461.4 576 320 576C178.6 576 64 461.4 64 320z" />
+        </svg>
+      </div>
+      <div title="Change language">
+        <select id="tm_select-language" style="cursor: pointer; outline: none; border: none">
+          <option value="vi">VI</option>
+          <option value="en">EN</option>
+        </select>
+      </div>
+
+    </div>
+  </header>
+  <main class="main">
+    <div id="tm_root"></div>
+  </main>
+  <footer>Created by Hoane</footer>
+  <script src="./libs/quill.js"></script>
+  <script src="./libs/toastify-js.js"></script>
+  <script src="dashboard.js" type="module"></script>
+</body>
+
+</html>
