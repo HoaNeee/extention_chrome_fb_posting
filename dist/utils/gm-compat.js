@@ -1,14 +1,14 @@
 (() => {
-  // src/constant-extention.js
-  var KEY_GM_NOTIFICATION = "GM_notification";
-  var KEY_GM_OPEN_IN_TAB = "GM_openInTab";
-  var KEY_GM_REGISTER_MENU_COMMAND = "GM_registerMenuCommand";
-  var KEY_GM_UNREGISTER_MENU_COMMAND = "GM_unregisterMenuCommand";
-  var KEY_GM_XMLHTTP_REQUEST = "GM_xmlhttpRequest";
-  var KEY_GM_XMLHTTP_REQUEST_RESPONSE = "GM_xmlhttpRequest_response";
+  // dist/contants/constant-extention.js
+  var KEY_NOTIFICATION = "GM_notification";
+  var KEY_OPEN_IN_TAB = "GM_openInTab";
+  var KEY_REGISTER_MENU_COMMAND = "GM_registerMenuCommand";
+  var KEY_UNREGISTER_MENU_COMMAND = "GM_unregisterMenuCommand";
+  var KEY_XMLHTTP_REQUEST = "GM_xmlhttpRequest";
+  var KEY_XMLHTTP_REQUEST_RESPONSE = "GM_xmlhttpRequest_response";
   var KEY_CLEAR_NOTIFICATION = "clearNotification";
 
-  // src/gm-compat.js
+  // dist/utils/gm-compat-src.js
   var GM = (function() {
     "use strict";
     async function GM_getValue(key, defaultValue) {
@@ -71,7 +71,7 @@
       }
       const notifId = "gm_notif_" + Date.now();
       chrome.runtime.sendMessage({
-        type: KEY_GM_NOTIFICATION,
+        type: KEY_NOTIFICATION,
         id: notifId,
         title: details.title || "FB Auto Post",
         message: details.text || "",
@@ -106,7 +106,7 @@
         active = options.active !== false;
       }
       chrome.runtime.sendMessage({
-        type: KEY_GM_OPEN_IN_TAB,
+        type: KEY_OPEN_IN_TAB,
         url,
         active
       });
@@ -115,7 +115,7 @@
     function GM_registerMenuCommand(name, callback) {
       const id = "gm_menu_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
       chrome.runtime.sendMessage({
-        type: KEY_GM_REGISTER_MENU_COMMAND,
+        type: KEY_REGISTER_MENU_COMMAND,
         id,
         title: name
       });
@@ -124,7 +124,7 @@
     }
     function GM_unregisterMenuCommand(commandId) {
       chrome.runtime.sendMessage({
-        type: KEY_GM_UNREGISTER_MENU_COMMAND,
+        type: KEY_UNREGISTER_MENU_COMMAND,
         id: commandId
       });
       _menuCommands.delete(commandId);
@@ -183,7 +183,7 @@
     function GM_xmlhttpRequest(details) {
       const requestId = "gm_xhr_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
       const handler = (msg) => {
-        if (msg.type !== KEY_GM_XMLHTTP_REQUEST_RESPONSE || msg.requestId !== requestId)
+        if (msg.type !== KEY_XMLHTTP_REQUEST_RESPONSE || msg.requestId !== requestId)
           return;
         chrome.runtime.onMessage.removeListener(handler);
         if (msg.error) {
@@ -201,7 +201,7 @@
       };
       chrome.runtime.onMessage.addListener(handler);
       chrome.runtime.sendMessage({
-        type: KEY_GM_XMLHTTP_REQUEST,
+        type: KEY_XMLHTTP_REQUEST,
         requestId,
         method: details.method || "GET",
         url: details.url,

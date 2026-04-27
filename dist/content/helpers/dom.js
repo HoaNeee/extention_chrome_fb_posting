@@ -2,12 +2,15 @@ import {
 	KEY_STOP_TASK,
 	SELECTOR,
 	SELECTOR_VI,
-} from "../../../contants/contants.js";
-import { DB_getValue } from "../utils/api-helper.js";
-import { getLanguage, logError, random, sleep } from "../../../utils/utils.js";
+} from "../../contants/contants.js";
+import { getLanguage, logError, random, sleep } from "../../utils/utils.js";
+
+function checkIsUseEvaluate(selector = "") {
+	return selector.includes(`//`);
+}
 
 async function waitForElement(selector, anchorElement = document, time = 0) {
-	const isStopTask = await DB_getValue(KEY_STOP_TASK);
+	const isStopTask = await GM_getValue(KEY_STOP_TASK);
 	if (time >= 50 || isStopTask) {
 		return null;
 	}
@@ -28,7 +31,7 @@ async function waitForElement(selector, anchorElement = document, time = 0) {
 		}
 	}
 
-	await sleep(300);
+	await sleep(200);
 	return await waitForElement(selector, anchorElement, time + 1);
 }
 
@@ -108,10 +111,6 @@ function getAllFieldsSetting(root = document) {
 	};
 }
 
-function checkIsUseEvaluate(selector = "") {
-	return selector.includes(`//`);
-}
-
 /**
  * Find element by selector with evaluate or querySelector
  * @param {string} selector
@@ -130,10 +129,12 @@ function findElement(selector, anchorElem = document) {
 			null,
 		)?.singleNodeValue;
 		if (node) return node;
+	} else {
+		const el = document.querySelector(selector);
+		if (el) return el;
 	}
 
-	const el = document.querySelector(selector);
-	return el;
+	return null;
 }
 
 function getIsExistDialog() {
@@ -146,16 +147,18 @@ function getIsExistDialog() {
 
 async function findDivToPost(time = 0) {
 	try {
-		if (time >= 40) {
+		if (time >= 50) {
 			return null;
 		}
 		const lang = getLanguage();
 		const selectors =
 			lang === "vi" ? SELECTOR_VI.elementsToPost : SELECTOR.elementsToPost;
 
+		console.log("selectors: ", selectors);
+
 		for (const selector of selectors) {
 			const el = findElement(selector);
-			console.log(el);
+			console.log("check el: ", el);
 			if (el) {
 				return el;
 			}
@@ -221,7 +224,7 @@ async function findButtonPostAndClick() {
 			const selectors =
 				lang === "vi" ? SELECTOR_VI.elementsPost : SELECTOR.elementsPost;
 
-			for (const selector of selectors) {
+			for await (const selector of selectors) {
 				const div = await waitForElement(
 					selector,
 					divContainer.lastElementChild,
