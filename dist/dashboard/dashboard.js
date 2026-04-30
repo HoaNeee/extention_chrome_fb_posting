@@ -1,24 +1,50 @@
 import { initLanguage, logError } from "../utils/utils.js";
+import { dialogContainer } from "./src/draw_element/dialog.js";
 import { createPanel } from "./src/draw_element/panel.js";
+import { getAllFieldsSetting } from "./src/helpers/elementDom.js";
 import { initialData } from "./src/helpers/initial.js";
+import addValueChangeListener from "./src/listener/addValueChangeListener.js";
+import {
+  clearAndCreateSchedulerAlarm,
+  getSchedulerService,
+} from "./src/services/scheduler-service.js";
 
 async function main() {
-	try {
-		await initLanguage();
-		const mainElement = document.querySelector("main");
-		const root = document.querySelector(`#tm_root`);
-		if (root) {
-			root.style.display = "none";
-			root.style.pointerEvents = "none";
-		}
-		createPanel(mainElement);
-		await initialData(mainElement);
+  try {
+    await initLanguage();
+    const mainElement = document.querySelector("main");
 
-		root.style.display = "block";
-		root.style.pointerEvents = "auto";
-	} catch (error) {
-		logError("Error at dashboard main: ", error);
-	}
+    dialogContainer({ anchorElem: document.body });
+
+    const root = document.querySelector(`#tm_root`);
+    if (root) {
+      root.style.display = "none";
+      root.style.pointerEvents = "none";
+    }
+    createPanel(mainElement);
+    await initialData(mainElement);
+
+    const { setIsProcessing } = getAllFieldsSetting();
+
+    addValueChangeListener(async (newVal) => {
+      try {
+        setIsProcessing(newVal);
+        if (!newVal) {
+          const scheduler = await getSchedulerService();
+          if (scheduler.isScheduler) {
+            clearAndCreateSchedulerAlarm();
+          }
+        }
+      } catch (error) {
+        logError("Error at dashboard addValueChangeListener: ", error);
+      }
+    });
+
+    root.style.display = "block";
+    root.style.pointerEvents = "auto";
+  } catch (error) {
+    logError("Error at dashboard main: ", error);
+  }
 }
 
 main();

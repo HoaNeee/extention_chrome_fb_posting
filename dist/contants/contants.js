@@ -47,6 +47,8 @@ const KEY_IS_SCROLL_DETECT_LIST_GROUP = "is_scroll_detect_list_group";
 
 const KEY_IS_FIX_STEAL_FOCUS = "is_fix_steal_focus";
 
+const KEY_IS_SHUFFLE_SCHEDULER_TIME = "is_shuffle_scheduler_time";
+
 const KEY_IS_RELOAD_DASHBOARD = "is_reload_dashboard";
 const KEY_COUNT_RELOAD_DASHBOARD = "count_reload_dashboard";
 const KEY_COUNT_NOT_RELOAD_DASHBOARD = "count_not_reload_dashboard";
@@ -61,26 +63,27 @@ const KEY_LANGUAGE = "language";
 const KEY_MY_SIGNATURE = "my_signature";
 
 const KEY_TAB = {
-	LAST_TAB_OPEN_ID: "last_tab_open_id",
-	TAB_GET_LIST_GROUP_ID: "tab_get_list_group_id",
-	LAST_POST_TAB_OPEN_ID: "last_post_tab_open_id",
+  LAST_TAB_OPEN_ID: "last_tab_open_id",
+  TAB_GET_LIST_GROUP_ID: "tab_get_list_group_id",
+  LAST_POST_TAB_OPEN_ID: "last_post_tab_open_id",
+  TAB_DASHBOARD_ID: "tab_dashboard_id",
 };
 
 const MAX_GROUP_PER_TIME_INITIAL = 1;
 
 const STATUS_TASK = {
-	PENDING: "pending",
-	SELECTING: "selecting",
-	DONE: "done",
-	POSTING: "posting",
-	ERROR: "error",
+  PENDING: "pending",
+  SELECTING: "selecting",
+  DONE: "done",
+  POSTING: "posting",
+  ERROR: "error",
 };
 
 const SCHEDULER_TYPE = {
-	EVERY_MINUTES: "custom-every-minutes",
-	EVERY_HOURS: "custom-every-hours",
-	FRAME_HOURS: "custom-frame-hours",
-	DAILY_HOURS: "daily-hours",
+  EVERY_MINUTES: "custom-every-minutes",
+  EVERY_HOURS: "custom-every-hours",
+  FRAME_HOURS: "custom-frame-hours",
+  DAILY_HOURS: "daily-hours",
 };
 
 const URL_DASHBOARD = "https://www.facebook.com/groups/joins/?nav_source=tab";
@@ -93,127 +96,128 @@ const MAX_Z_INDEX = 999999999;
 const prefix = "tm_";
 
 function getHref() {
-	return location.href;
+  return location.href;
 }
 
 const isDashboardTab = getHref() === URL_DASHBOARD;
 const isPostTab =
-	!isDashboardTab &&
-	!getHref().includes("/groups/join") &&
-	!getHref().includes("/groups/feed") &&
-	!getHref().includes("/groups/discover") &&
-	getHref().includes("/groups/");
+  !isDashboardTab &&
+  !getHref().includes("/groups/join") &&
+  !getHref().includes("/groups/feed") &&
+  !getHref().includes("/groups/discover") &&
+  getHref().includes("/groups/");
 
 const initialTimeDelay = {
-	clickToPost: 4,
-	fillContent: 5,
-	fillFile: 7,
-	post: 5,
-	openNewTab: 2,
+  clickToPost: 4,
+  fillContent: 5,
+  fillFile: 7,
+  post: 5,
+  openNewTab: 2,
 };
 
 const SELECTOR = {
-	elementsToPost: [`//span[contains(text(), "Write something...")]`],
+  elementsToPost: [`//span[contains(text(), "Write something...")]`],
 
-	elementsPost: [`div[aria-label="Post"][role="button"]`],
+  elementsPost: [`div[aria-label="Post"][role="button"]`],
 
-	dialog: [`div[role="dialog"]`],
+  dialog: [`div[role="dialog"]`],
 
-	elementsCloseDialog: [`//div[@aria-label="Close dialog of create tool"]`],
+  elementsCloseDialog: [`//div[@aria-label="Close dialog of create tool"]`],
 
-	elementsCreatePost: [`div[aria-label="Create post"][role="dialog"]`],
+  elementsCreatePost: [`div[aria-label="Create post"][role="dialog"]`],
 
-	elementsTextBoxEditor: [`div[contenteditable="true"][role="textbox"]`],
+  elementsTextBoxEditor: [`div[contenteditable="true"][role="textbox"]`],
 
-	elementsSpammed: [
-		`//div[contains(text(), "You have posted too many times. Please try again later.")]`,
-	],
+  elementsSpammed: [
+    `//div[contains(text(), "You have posted too many times. Please try again later.")]`,
+  ],
 
-	listElementContainers: [`div[aria-label="Preview of a group"][role="main"]`],
+  listElementContainers: [`div[aria-label="Preview of a group"][role="main"]`],
 
-	waitingGroups: [`//span[contains(text(),"Request to join group pending")]`],
+  waitingGroups: [`//span[contains(text(),"Request to join group pending")]`],
 
-	allGroupsJoinTexts: [`//span[contains(text(),"All groups you've joined")]`],
+  allGroupsJoinTexts: [`//span[contains(text(),"All groups you've joined")]`],
 };
 
 const SELECTOR_VI = {
-	elementsToPost: [`//span[contains(text(), "Bạn viết gì đi...")]`],
+  elementsToPost: [`//span[contains(text(), "Bạn viết gì đi...")]`],
 
-	elementsPost: [`div[aria-label="Đăng"][role="button"]`],
+  elementsPost: [`div[aria-label="Đăng"][role="button"]`],
 
-	elementsCreatePost: [`div[aria-label="Tạo bài viết"][role="dialog"]`],
+  elementsCreatePost: [`div[aria-label="Tạo bài viết"][role="dialog"]`],
 
-	elementsTextBoxEditor: [`div[contenteditable="true"][role="textbox"]`],
+  elementsTextBoxEditor: [`div[contenteditable="true"][role="textbox"]`],
 
-	elementsCloseDialog: ['//div[@aria-label="Đóng hộp thoại của công cụ tạo"]'],
+  elementsCloseDialog: ['//div[@aria-label="Đóng hộp thoại của công cụ tạo"]'],
 
-	elementsSpammed: [
-		`//div[contains(text(), "Bạn đã gửi quá nhiều bài viết. Vui lòng thử lại sau.")]`,
-	],
+  elementsSpammed: [
+    `//div[contains(text(), "Bạn đã gửi quá nhiều bài viết. Vui lòng thử lại sau.")]`,
+  ],
 
-	listElementContainers: [`div[aria-label="Bản xem trước nhóm"]`],
+  listElementContainers: [`div[aria-label="Bản xem trước nhóm"]`],
 
-	waitingGroups: [`//span[contains(text(),"Yêu cầu tham gia nhóm đang chờ")]`],
+  waitingGroups: [`//span[contains(text(),"Yêu cầu tham gia nhóm đang chờ")]`],
 
-	allGroupsJoinTexts: [
-		`//span[contains(text(),"Tất cả các nhóm bạn đã tham gia")]`,
-	],
+  allGroupsJoinTexts: [
+    `//span[contains(text(),"Tất cả các nhóm bạn đã tham gia")]`,
+  ],
 };
 
 const SELECTOR_RAW = {
-	listItems: `div[role="listitem"]`,
-	toolbarLabel: `div#toolbarLabel`,
-	inputFiles: `input[accept][multiple][type="file"]`,
+  listItems: `div[role="listitem"]`,
+  toolbarLabel: `div#toolbarLabel`,
+  inputFiles: `input[accept][multiple][type="file"]`,
 };
 
 export {
-	KEY_RETRY_CALL,
-	KEY_IS_SHOW_DASHBOARD,
-	KEY_ALL_GROUPS,
-	KEY_GROUPS_NEED_POST,
-	KEY_GROUPS_POSTED,
-	KEY_POST,
-	KEY_POST_LENGTH,
-	KEY_RE_POST_ALL_GROUP,
-	KEY_IS_TEST,
-	KEY_LAST_TIME_POST,
-	KEY_IS_IN_PROGRESS,
-	KEY_STOP_TASK,
-	KEY_MAX_GROUP_PER_TIME,
-	KEY_SCHEDULER,
-	MAX_GROUP_PER_TIME_INITIAL,
-	URL_DASHBOARD,
-	URL_TAB_TASK,
-	isDashboardTab,
-	isPostTab,
-	MAX_Z_INDEX,
-	KEY_DATA_POST_SAVED,
-	KEY_INDEXS_GROUP_CHECKED,
-	KEY_INDEX_GROUP_POST,
-	KEY_IS_SCROLL_DETECT_LIST_GROUP,
-	prefix,
-	KEY_IS_SHOW_ADVANCE_SETTING,
-	KEY_IS_SHOW_PANEL_GROUP,
-	KEY_TIME_DELAY,
-	initialTimeDelay,
-	KEY_IS_FIX_STEAL_FOCUS,
-	KEY_QUEUE,
-	KEY_IS_DEVELOPER_MODE,
-	KEY_COUNT_RESET_GROUPS,
-	KEY_IS_DARK_THEME,
-	KEY_LANGUAGE,
-	KEY_TITLE_STRICTLY_MATCH_GROUP,
-	STATUS_TASK,
-	SCHEDULER_TYPE,
-	KEY_IS_RELOAD_DASHBOARD,
-	KEY_COUNT_RELOAD_DASHBOARD,
-	KEY_SCHEDULER_RELOAD_DASHBOARD,
-	KEY_COUNT_NOT_RELOAD_DASHBOARD,
-	KEY_LAST_TIME_RELOAD_DASHBOARD,
-	URL_LIST_GROUPS,
-	SELECTOR,
-	SELECTOR_VI,
-	SELECTOR_RAW,
-	KEY_TAB,
-	KEY_CAN_POST_THIS_TAB,
+  KEY_RETRY_CALL,
+  KEY_IS_SHOW_DASHBOARD,
+  KEY_ALL_GROUPS,
+  KEY_GROUPS_NEED_POST,
+  KEY_GROUPS_POSTED,
+  KEY_POST,
+  KEY_POST_LENGTH,
+  KEY_RE_POST_ALL_GROUP,
+  KEY_IS_TEST,
+  KEY_LAST_TIME_POST,
+  KEY_IS_IN_PROGRESS,
+  KEY_STOP_TASK,
+  KEY_MAX_GROUP_PER_TIME,
+  KEY_SCHEDULER,
+  MAX_GROUP_PER_TIME_INITIAL,
+  URL_DASHBOARD,
+  URL_TAB_TASK,
+  isDashboardTab,
+  isPostTab,
+  MAX_Z_INDEX,
+  KEY_DATA_POST_SAVED,
+  KEY_INDEXS_GROUP_CHECKED,
+  KEY_INDEX_GROUP_POST,
+  KEY_IS_SCROLL_DETECT_LIST_GROUP,
+  prefix,
+  KEY_IS_SHOW_ADVANCE_SETTING,
+  KEY_IS_SHOW_PANEL_GROUP,
+  KEY_TIME_DELAY,
+  initialTimeDelay,
+  KEY_IS_FIX_STEAL_FOCUS,
+  KEY_QUEUE,
+  KEY_IS_DEVELOPER_MODE,
+  KEY_COUNT_RESET_GROUPS,
+  KEY_IS_DARK_THEME,
+  KEY_LANGUAGE,
+  KEY_TITLE_STRICTLY_MATCH_GROUP,
+  STATUS_TASK,
+  SCHEDULER_TYPE,
+  KEY_IS_RELOAD_DASHBOARD,
+  KEY_COUNT_RELOAD_DASHBOARD,
+  KEY_SCHEDULER_RELOAD_DASHBOARD,
+  KEY_COUNT_NOT_RELOAD_DASHBOARD,
+  KEY_LAST_TIME_RELOAD_DASHBOARD,
+  URL_LIST_GROUPS,
+  SELECTOR,
+  SELECTOR_VI,
+  SELECTOR_RAW,
+  KEY_TAB,
+  KEY_CAN_POST_THIS_TAB,
+  KEY_IS_SHUFFLE_SCHEDULER_TIME,
 };

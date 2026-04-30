@@ -1,95 +1,29 @@
 import {
-	KEY_GROUPS_NEED_POST,
-	KEY_IS_IN_PROGRESS,
-	KEY_SCHEDULER,
-	KEY_DATA_POST_SAVED,
-	KEY_INDEX_GROUP_POST,
-	KEY_INDEXS_GROUP_CHECKED,
-	KEY_STOP_TASK,
-	initialTimeDelay,
-	KEY_TIME_DELAY,
-	KEY_IS_FIX_STEAL_FOCUS,
-	KEY_QUEUE,
-	KEY_GROUPS_POSTED,
-	KEY_TITLE_STRICTLY_MATCH_GROUP,
-	KEY_SCHEDULER_RELOAD_DASHBOARD,
-	KEY_ALL_GROUPS,
-	KEY_LANGUAGE,
+  KEY_IS_IN_PROGRESS,
+  KEY_INDEX_GROUP_POST,
+  KEY_INDEXS_GROUP_CHECKED,
+  KEY_STOP_TASK,
+  initialTimeDelay,
+  KEY_TIME_DELAY,
+  KEY_IS_FIX_STEAL_FOCUS,
+  KEY_QUEUE,
+  KEY_TITLE_STRICTLY_MATCH_GROUP,
+  KEY_LANGUAGE,
 } from "../../../contants/contants.js";
 import {
-	getAllGroupPostedsInStorage,
-	getListGroupsNeedPostInStorage,
+  getAllGroupPostedsInStorage,
+  getListGroupsNeedPostInStorage,
 } from "../services/groupService.js";
 import { DB_getValue, DB_setValue } from "../utils/api-helper.js";
-import { DataSavedDB } from "../utils/dataSavedDB.js";
 import Queue from "../utils/queue.js";
-import { logActions, logError, now, random } from "../../../utils/utils.js";
-import {
-	createSchedulerDailyHours,
-	createSchedulerReloadDashboard,
-} from "./scheduler.js";
+import { logActions, now, random } from "../../../utils/utils.js";
 
 async function setProgress(b) {
-	await DB_setValue(KEY_IS_IN_PROGRESS, b);
+  await DB_setValue(KEY_IS_IN_PROGRESS, b);
 }
 
 async function getProgress() {
-	return (await DB_getValue(KEY_IS_IN_PROGRESS)) || false;
-}
-
-const initScheduler = {
-	type: "daily-hours", //custom-every-hours, custom-every-minutes, frame-hours
-	frameHours: [],
-	schedulerMinutes: [],
-	schedulerHours: [],
-	dailyHours: createSchedulerDailyHours(),
-	isScheduler: false,
-	valueMinutes: 5,
-	valueHours: 1,
-	time: now(),
-};
-
-/**
- *
- * @param {typeof initScheduler} scheduler
- */
-async function setSchedulerInStorage(scheduler = initScheduler) {
-	const {
-		dailyHours,
-		frameHours,
-		schedulerMinutes,
-		schedulerHours,
-		type,
-		isScheduler,
-		valueMinutes,
-		valueHours,
-		time,
-	} = scheduler;
-
-	await DB_setValue(KEY_SCHEDULER, {
-		frameHours,
-		schedulerMinutes,
-		schedulerHours,
-		dailyHours,
-		type,
-		isScheduler,
-		valueMinutes,
-		valueHours,
-		time,
-	});
-}
-
-/**
- *
- * @returns {Promise<typeof initScheduler>}
- */
-async function getSchedulerInStorage() {
-	const scheduler = await DB_getValue(KEY_SCHEDULER);
-	if (!scheduler) {
-		setSchedulerInStorage();
-		return initScheduler;
-	}
-	return scheduler;
+  return (await DB_getValue(KEY_IS_IN_PROGRESS)) || false;
 }
 
 /**
@@ -97,8 +31,8 @@ async function getSchedulerInStorage() {
  * @returns {Promise<string|null>} The current id (index) or null if not set
  */
 async function getCurrentIndexGroupPost() {
-	const index = await DB_getValue(KEY_INDEX_GROUP_POST);
-	return index;
+  const index = await DB_getValue(KEY_INDEX_GROUP_POST);
+  return index;
 }
 
 /**
@@ -106,65 +40,65 @@ async function getCurrentIndexGroupPost() {
  * @param {string|null} index  The id of the group to set as currently being posted, or null to unset
  */
 async function setCurrentIndexGroupPost(index) {
-	await DB_setValue(KEY_INDEX_GROUP_POST, index);
+  await DB_setValue(KEY_INDEX_GROUP_POST, index);
 }
 
 /**
  * @returns {Promise<string|null>} random ID of group or NULL if all groups are posted and reset to pending
  */
 async function getRandomIndexGroupChecked() {
-	try {
-		const objectList = await getListGroupsNeedPostInStorage();
-		const listGroups = objectList?.groups || [];
-		const indexsChecked = (await DB_getValue(KEY_INDEXS_GROUP_CHECKED)) || [];
-		if (!indexsChecked.length) {
-			return null;
-		}
-		const randomIndex = random(0, indexsChecked.length - 1);
-		let id = indexsChecked[randomIndex];
+  try {
+    const objectList = await getListGroupsNeedPostInStorage();
+    const listGroups = objectList?.groups || [];
+    const indexsChecked = (await DB_getValue(KEY_INDEXS_GROUP_CHECKED)) || [];
+    if (!indexsChecked.length) {
+      return null;
+    }
+    const randomIndex = random(0, indexsChecked.length - 1);
+    let id = indexsChecked[randomIndex];
 
-		let need = listGroups.find((gr) => gr.id === id);
+    let need = listGroups.find((gr) => gr.id === id);
 
-		let groups = need?.groups || [];
-		const posteds = await getAllGroupPostedsInStorage();
-		const set = new Set(posteds);
-		groups = groups.filter((gr) => !set.has(gr.id_href));
+    let groups = need?.groups || [];
+    const posteds = await getAllGroupPostedsInStorage();
+    const set = new Set(posteds);
+    groups = groups.filter((gr) => !set.has(gr.id_href));
 
-		const isAllNotPending = groups.every((gr) => gr.status !== "pending");
+    const isAllNotPending = groups.every((gr) => gr.status !== "pending");
 
-		if (isAllNotPending) {
-			let isPostedAll = true;
-			for (const indexId of indexsChecked) {
-				if (indexId === id) continue;
-				const needTemp = listGroups.find((gr) => gr.id === indexId);
-				const groupsTemp = needTemp?.groups || [];
-				const isExistPending = groupsTemp.some(
-					(gr) => gr.status === "pending" && !set.has(gr.id_href),
-				);
-				if (isExistPending) {
-					id = indexId;
-					isPostedAll = false;
-					break;
-				}
-			}
+    if (isAllNotPending) {
+      let isPostedAll = true;
+      for (const indexId of indexsChecked) {
+        if (indexId === id) continue;
+        const needTemp = listGroups.find((gr) => gr.id === indexId);
+        const groupsTemp = needTemp?.groups || [];
+        const isExistPending = groupsTemp.some(
+          (gr) => gr.status === "pending" && !set.has(gr.id_href),
+        );
+        if (isExistPending) {
+          id = indexId;
+          isPostedAll = false;
+          break;
+        }
+      }
 
-			if (isPostedAll) {
-				//reset all -> return null
-				logActions("Reset all groups need post to pending");
-				return null;
-			}
+      if (isPostedAll) {
+        //reset all -> return null
+        logActions("Reset all groups need post to pending");
+        return null;
+      }
 
-			return id;
-		}
+      return id;
+    }
 
-		return id;
-	} catch (error) {
-		throw new Error("Error getRandomIndexGroupChecked: " + error);
-	}
+    return id;
+  } catch (error) {
+    throw new Error("Error getRandomIndexGroupChecked: " + error);
+  }
 }
 
 async function getIsStopTaskInStorage() {
-	return (await DB_getValue(KEY_STOP_TASK)) || false;
+  return (await DB_getValue(KEY_STOP_TASK)) || false;
 }
 
 /**
@@ -172,7 +106,7 @@ async function getIsStopTaskInStorage() {
  * @param {typeof initialTimeDelay} timeDelay
  */
 function setTimeDelayInStorage(timeDelay = initialTimeDelay) {
-	DB_setValue(KEY_TIME_DELAY, timeDelay);
+  DB_setValue(KEY_TIME_DELAY, timeDelay);
 }
 
 /**
@@ -180,12 +114,12 @@ function setTimeDelayInStorage(timeDelay = initialTimeDelay) {
  * @returns {Promise<typeof initialTimeDelay>} The time delay settings from storage, or the initial default if not set
  */
 async function getTimeDelayInStorage() {
-	const timeDelay = await DB_getValue(KEY_TIME_DELAY);
-	if (!timeDelay) {
-		setTimeDelayInStorage();
-		return initialTimeDelay;
-	}
-	return timeDelay;
+  const timeDelay = await DB_getValue(KEY_TIME_DELAY);
+  if (!timeDelay) {
+    setTimeDelayInStorage();
+    return initialTimeDelay;
+  }
+  return timeDelay;
 }
 
 /**
@@ -197,7 +131,7 @@ async function getTimeDelayInStorage() {
  * @returns {Promise<boolean>} The setting for whether to fix the steal focus issue, defaulting to false if not set
  */
 async function getIsStealFocusInStorage() {
-	return (await DB_getValue(KEY_IS_FIX_STEAL_FOCUS)) || false;
+  return (await DB_getValue(KEY_IS_FIX_STEAL_FOCUS)) || false;
 }
 
 /**
@@ -205,7 +139,7 @@ async function getIsStealFocusInStorage() {
  * @param {{queue: Array<{name: string, data: any}>, time: number}} queue
  */
 function setQueueInStorage(queue) {
-	DB_setValue(KEY_QUEUE, queue);
+  DB_setValue(KEY_QUEUE, queue);
 }
 
 /**
@@ -213,10 +147,10 @@ function setQueueInStorage(queue) {
  * @returns {Promise<{queue: Queue, time: number}>} The queue of tasks or actions stored in storage, defaulting to an empty array if not set
  */
 async function getQueueInStorage() {
-	const queueObject = await DB_getValue(KEY_QUEUE);
-	const queue = new Queue(queueObject?.queue || []);
+  const queueObject = await DB_getValue(KEY_QUEUE);
+  const queue = new Queue(queueObject?.queue || []);
 
-	return { queue, time: queueObject?.time || now() - 10000 };
+  return { queue, time: queueObject?.time || now() - 10000 };
 }
 
 /**
@@ -224,7 +158,7 @@ async function getQueueInStorage() {
  * @param {string} strictlyMatchTitleGroup string of keywords to strictly match title group (split by ',')
  */
 function setStrictlyMatchTitleGroupInStorage(strictlyMatchTitleGroup = "") {
-	DB_setValue(KEY_TITLE_STRICTLY_MATCH_GROUP, strictlyMatchTitleGroup);
+  DB_setValue(KEY_TITLE_STRICTLY_MATCH_GROUP, strictlyMatchTitleGroup);
 }
 
 /**
@@ -232,39 +166,42 @@ function setStrictlyMatchTitleGroupInStorage(strictlyMatchTitleGroup = "") {
  * @returns {Promise<string>} array of string keywords to strictly match title group
  */
 async function getStrictlyMatchTitleGroupInStorage() {
-	const data = await DB_getValue(KEY_TITLE_STRICTLY_MATCH_GROUP);
-	if (data && Array.isArray(data)) {
-		const strData = data.join(", ");
-		setStrictlyMatchTitleGroupInStorage(strData);
-		return strData.trim();
-	}
-	if (data === undefined || data === null) {
-		const initData = `Cho thuê trọ, Tìm phòng trọ, Cho thuê phòng trọ, CCMN, Phòng trọ, Tìm phòng trọ giá rẻ`;
-		setStrictlyMatchTitleGroupInStorage(initData);
-		return initData.trim();
-	}
-	return data.trim();
+  const data = await DB_getValue(KEY_TITLE_STRICTLY_MATCH_GROUP);
+  if (data && Array.isArray(data)) {
+    const strData = data.join(", ");
+    setStrictlyMatchTitleGroupInStorage(strData);
+    return strData.trim();
+  }
+  if (data === undefined || data === null) {
+    const initData = `Cho thuê trọ, Tìm phòng trọ, Cho thuê phòng trọ, CCMN, Phòng trọ, Tìm phòng trọ giá rẻ`;
+    setStrictlyMatchTitleGroupInStorage(initData);
+    return initData.trim();
+  }
+  return data.trim();
 }
 
 async function getLanguageInStorage() {
-	return (await DB_getValue(KEY_LANGUAGE)) || "en";
+  const lang = await DB_getValue(KEY_LANGUAGE);
+  if (lang === undefined || lang === null) {
+    DB_setValue(KEY_LANGUAGE, "en");
+    return "en";
+  }
+  return lang;
 }
 
 export {
-	setProgress,
-	getProgress,
-	setSchedulerInStorage,
-	getSchedulerInStorage,
-	getRandomIndexGroupChecked,
-	getCurrentIndexGroupPost,
-	setCurrentIndexGroupPost,
-	getIsStopTaskInStorage,
-	setTimeDelayInStorage,
-	getTimeDelayInStorage,
-	getIsStealFocusInStorage,
-	setQueueInStorage,
-	getQueueInStorage,
-	setStrictlyMatchTitleGroupInStorage,
-	getStrictlyMatchTitleGroupInStorage,
-	getLanguageInStorage,
+  setProgress,
+  getProgress,
+  getRandomIndexGroupChecked,
+  getCurrentIndexGroupPost,
+  setCurrentIndexGroupPost,
+  getIsStopTaskInStorage,
+  setTimeDelayInStorage,
+  getTimeDelayInStorage,
+  getIsStealFocusInStorage,
+  setQueueInStorage,
+  getQueueInStorage,
+  setStrictlyMatchTitleGroupInStorage,
+  getStrictlyMatchTitleGroupInStorage,
+  getLanguageInStorage,
 };

@@ -1,37 +1,37 @@
 import {
-	KEY_IS_IN_PROGRESS,
-	KEY_POST,
-	KEY_POST_LENGTH,
-	STATUS_TASK,
+  KEY_IS_IN_PROGRESS,
+  KEY_POST,
+  KEY_POST_LENGTH,
+  STATUS_TASK,
 } from "../contants/contants.js";
 import {
-	getAllGroupPostedsInStorage,
-	setAllGroupPostedsInStorage,
+  getAllGroupPostedsInStorage,
+  setAllGroupPostedsInStorage,
 } from "../dashboard/src/services/groupService.js";
 import { logError } from "./utils.js";
 
 async function BG_setValue(key, value) {
-	await chrome.storage.local.set({ [key]: value });
+  await chrome.storage.local.set({ [key]: value });
 }
 
 async function BG_getValue(key) {
-	const res = await chrome.storage.local.get(key);
-	if (res[key]) {
-		return res[key];
-	}
-	return null;
+  const res = await chrome.storage.local.get(key);
+  if (res[key] !== undefined && res[key] !== null) {
+    return res[key];
+  }
+  return null;
 }
 
 async function BG_deleteValue(key) {
-	await chrome.storage.local.remove(key);
+  await chrome.storage.local.remove(key);
 }
 
 async function setProgressTool(b) {
-	BG_setValue(KEY_IS_IN_PROGRESS, b);
+  BG_setValue(KEY_IS_IN_PROGRESS, b);
 }
 
 async function getProgressTool() {
-	return (await BG_getValue(KEY_IS_IN_PROGRESS)) || false;
+  return (await BG_getValue(KEY_IS_IN_PROGRESS)) || false;
 }
 
 /**
@@ -39,7 +39,7 @@ async function getProgressTool() {
  * @param {{task: {id_href: string, status: string}, time: number}} task
  */
 async function saveTask(task) {
-	await BG_setValue(KEY_POST, task);
+  await BG_setValue(KEY_POST, task);
 }
 
 /**
@@ -47,35 +47,35 @@ async function saveTask(task) {
  * @param {'pending' | 'selecting' | 'posting' | 'done' | 'error'} status - Status of task can be 'posting', 'done', 'pending', 'selecting'
  */
 async function setStatusTask(status) {
-	try {
-		const isProgress = await getProgressTool();
-		if (!isProgress) {
-			return;
-		}
-		console.log("Update status task: ", status);
-		const taskObject = await getTask();
+  try {
+    const isProgress = await getProgressTool();
+    if (!isProgress) {
+      return;
+    }
+    console.log("Update status task: ", status);
+    const taskObject = await getTask();
 
-		if (!taskObject) {
-			return;
-		}
+    if (!taskObject) {
+      return;
+    }
 
-		const id_href = taskObject?.task?.id_href;
-		taskObject.task.status = status;
-		BG_setValue(KEY_POST, taskObject);
-		if (status === STATUS_TASK.DONE || status === STATUS_TASK.ERROR) {
-			if (status === STATUS_TASK.DONE) {
-				const currentLengthPost = await getCurrentPostLength();
-				setCurrentPostLength(currentLengthPost + 1);
-			}
-			const posteds = await getAllGroupPostedsInStorage();
-			if (id_href && !posteds.includes(id_href)) {
-				posteds.push(id_href);
-				setAllGroupPostedsInStorage(posteds);
-			}
-		}
-	} catch (error) {
-		logError("Error at setStatusTask: ", error);
-	}
+    const id_href = taskObject?.task?.id_href;
+    taskObject.task.status = status;
+    BG_setValue(KEY_POST, taskObject);
+    if (status === STATUS_TASK.DONE || status === STATUS_TASK.ERROR) {
+      if (status === STATUS_TASK.DONE) {
+        const currentLengthPost = await getCurrentPostLength();
+        setCurrentPostLength(currentLengthPost + 1);
+      }
+      const posteds = await getAllGroupPostedsInStorage();
+      if (id_href && !posteds.includes(id_href)) {
+        posteds.push(id_href);
+        setAllGroupPostedsInStorage(posteds);
+      }
+    }
+  } catch (error) {
+    logError("Error at setStatusTask: ", error);
+  }
 }
 
 /**
@@ -83,7 +83,7 @@ async function setStatusTask(status) {
  * @returns {Promise<{task: {id_href: string, status: string}, time: number}>}
  */
 async function getTask() {
-	return await BG_getValue(KEY_POST);
+  return await BG_getValue(KEY_POST);
 }
 
 /**
@@ -91,7 +91,7 @@ async function getTask() {
  * @returns {Promise<number>}
  */
 async function getCurrentPostLength() {
-	return (await BG_getValue(KEY_POST_LENGTH)) || 0;
+  return (await BG_getValue(KEY_POST_LENGTH)) || 0;
 }
 
 /**
@@ -99,18 +99,18 @@ async function getCurrentPostLength() {
  * @param {number} length
  */
 async function setCurrentPostLength(length) {
-	await BG_setValue(KEY_POST_LENGTH, length);
+  await BG_setValue(KEY_POST_LENGTH, length);
 }
 
 export {
-	BG_setValue,
-	BG_getValue,
-	BG_deleteValue,
-	setProgressTool,
-	getProgressTool,
-	setStatusTask,
-	getTask,
-	getCurrentPostLength,
-	setCurrentPostLength,
-	saveTask,
+  BG_setValue,
+  BG_getValue,
+  BG_deleteValue,
+  setProgressTool,
+  getProgressTool,
+  setStatusTask,
+  getTask,
+  getCurrentPostLength,
+  setCurrentPostLength,
+  saveTask,
 };

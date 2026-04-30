@@ -130,36 +130,36 @@ body.dark {
 
 /* field input, checkbox,... */
 
-#tm_root .tm_field-container {
+.tm_field-container {
   padding: 4px 8px;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-#tm_root input {
+input {
   border: var(--tm-border-color);
   background: var(--tm-input-bg);
   color: var(--tm-input-text);
 }
 
-#tm_root textarea {
+textarea {
   background: var(--tm-input-bg);
   color: var(--tm-input-text);
   border: 1px solid var(--tm-border-color);
 }
 
-#tm_root input::placeholder {
+input::placeholder {
   color: var(--tm-text-secondary);
 }
 
-#tm_root .tm_field-container[disabled] * {
+.tm_field-container[disabled] * {
   opacity: 0.6 !important;
   user-select: none;
   cursor: not-allowed !important;
 }
 
-#tm_root label {
+label {
   color: var(--tm-text-primary);
   font-weight: 600;
   font-size: 13px;
@@ -173,7 +173,7 @@ body.dark {
   color: var(--tm-text-primary);
 }
 
-#tm_root .tm_field-container input.tm_input-outline {
+.tm_field-container input.tm_input-outline {
   padding: 4px;
   outline: none;
   border: 1px solid var(--tm-border-color);
@@ -189,7 +189,7 @@ body.dark {
   margin-top: 4px;
 }
 
-#tm_root button {
+button {
   cursor: pointer;
   background: var(--tm-bg-btn-primary);
   color: var(--tm-text-btn-primary);
@@ -197,11 +197,11 @@ body.dark {
   border-radius: 3px;
 }
 
-#tm_root button.not-style {
+button.not-style {
   padding: 4px 8px;
 }
 
-#tm_root button:not(.not-style) {
+button:not(.not-style) {
   padding: 6px 14px;
 }
 

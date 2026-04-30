@@ -12,8 +12,8 @@
 
   // dist/contants/contants.js
   var KEY_ALL_GROUPS = "all_groups";
-  var KEY_POST = "posting";
-  var KEY_IS_TEST2 = "is_test";
+  var KEY_LAST_TIME_POST = "last_time_post";
+  var KEY_IS_TEST = "is_test";
   var KEY_IS_IN_PROGRESS = "is_in_progress";
   var KEY_STOP_TASK = "is_stop_task";
   var KEY_TIME_DELAY = "time_delay";
@@ -103,29 +103,6 @@
       };
     }
   })();
-
-  // dist/dashboard/src/helpers/scheduler.js
-  function createSchedulerDailyHours() {
-    const newScheduler = [];
-    for (let i = 0; i < 24; i++) {
-      newScheduler.push({ h: i, m: 0 });
-    }
-    return newScheduler;
-  }
-
-  // dist/dashboard/src/helpers/storage.js
-  var initScheduler = {
-    type: "daily-hours",
-    //custom-every-hours, custom-every-minutes, frame-hours
-    frameHours: [],
-    schedulerMinutes: [],
-    schedulerHours: [],
-    dailyHours: createSchedulerDailyHours(),
-    isScheduler: false,
-    valueMinutes: 5,
-    valueHours: 1,
-    time: now()
-  };
 
   // dist/utils/utils.js
   async function sleep(duration) {
@@ -229,7 +206,7 @@
   function checkIsUseEvaluate(selector = "") {
     return selector.includes(`//`);
   }
-  async function waitForElement2(selector, anchorElement = document, time = 0) {
+  async function waitForElement(selector, anchorElement = document, time = 0) {
     const isStopTask = await GM_getValue(KEY_STOP_TASK);
     if (time >= 50 || isStopTask) {
       return null;
@@ -250,9 +227,9 @@
       }
     }
     await sleep(200);
-    return await waitForElement2(selector, anchorElement, time + 1);
+    return await waitForElement(selector, anchorElement, time + 1);
   }
-  function findElement2(selector, anchorElem = document) {
+  function findElement(selector, anchorElem = document) {
     if (!selector) {
       return null;
     }
@@ -271,30 +248,28 @@
     }
     return null;
   }
-  function getIsExistDialog2() {
+  function getIsExistDialog() {
     for (const selector of SELECTOR.dialog) {
       const dialog = document.querySelector(selector);
       if (dialog) return true;
     }
     return false;
   }
-  async function findDivToPost2(time = 0) {
+  async function findDivToPost(time = 0) {
     try {
       if (time >= 50) {
         return null;
       }
       const lang = getLanguage();
       const selectors = lang === "vi" ? SELECTOR_VI.elementsToPost : SELECTOR.elementsToPost;
-      console.log("selectors: ", selectors);
       for (const selector of selectors) {
-        const el = findElement2(selector);
-        console.log("check el: ", el);
+        const el = findElement(selector);
         if (el) {
           return el;
         }
       }
       await sleep(200);
-      return await findDivToPost2(time + 1);
+      return await findDivToPost(time + 1);
     } catch (error) {
       logError("Error at findDivToPost: ", error);
       throw new Error("Error at findDivToPost: " + error);
@@ -305,7 +280,7 @@
       const lang = getLanguage();
       const selectors = lang === "vi" ? SELECTOR_VI.elementsCreatePost : SELECTOR.elementsCreatePost;
       for (const selector of selectors) {
-        const div = await waitForElement2(selector);
+        const div = await waitForElement(selector);
         if (div) {
           return div?.parentElement?.parentElement || div?.parentElement || div;
         }
@@ -316,13 +291,13 @@
       throw new Error("Error at findDivCreatePostContainer: " + error);
     }
   }
-  async function findDivInputTextbox2() {
+  async function findDivInputTextbox() {
     try {
       const div = await findDivCreatePostContainer();
       if (div) {
         const selectorEditors = SELECTOR.elementsTextBoxEditor;
         for await (const selector of selectorEditors) {
-          const input = await waitForElement2(
+          const input = await waitForElement(
             selector,
             div.children?.[1] || div?.children?.[0] || div?.firstElementChild || div
           );
@@ -334,14 +309,14 @@
       throw new Error("Error at findDivInputTextbox: " + error);
     }
   }
-  async function findButtonPostAndClick2() {
+  async function findButtonPostAndClick() {
     try {
       const divContainer = await findDivCreatePostContainer();
       if (divContainer) {
         const lang = getLanguage();
         const selectors = lang === "vi" ? SELECTOR_VI.elementsPost : SELECTOR.elementsPost;
         for await (const selector of selectors) {
-          const div = await waitForElement2(
+          const div = await waitForElement(
             selector,
             divContainer.lastElementChild
           );
@@ -360,7 +335,33 @@
         return false;
       }
     } catch (e) {
-      throw new Error("Error at findButtonPostAndClick: " + e);
+      logError("Error at findButtonPostAndClick: ", e);
+      return false;
+    }
+  }
+  function clickOutSideHideDialog() {
+    const isExist = getIsExistDialog();
+    if (!isExist) return;
+    const selectorsDialog = SELECTOR.dialog;
+    let isExistDialog = isExist;
+    for (const selector of selectorsDialog) {
+      if (isExistDialog) break;
+      const dialog = findElement(selector);
+      if (dialog) {
+        isExistDialog = true;
+      }
+    }
+    if (!isExistDialog) {
+      return;
+    }
+    const lang = getLanguage();
+    const selectors = lang === "vi" ? SELECTOR_VI.elementsCloseDialog : SELECTOR.elementsCloseDialog;
+    for (const selector of selectors) {
+      const closeElement = findElement(selector);
+      if (closeElement) {
+        closeElement.click();
+        return;
+      }
     }
   }
 
@@ -371,16 +372,16 @@
       let divContainerList = null;
       const selectorsContainerList = lang === "vi" ? SELECTOR_VI.listElementContainers : SELECTOR.listElementContainers;
       for (const selector of selectorsContainerList) {
-        divContainerList = await waitForElement2(selector);
+        divContainerList = await waitForElement(selector);
         if (divContainerList) break;
       }
       let selectorGroupWaitingTexts = SELECTOR_VI.allGroupsJoinTexts;
       let spanExistGroupWaiting = null;
       for (const selector of selectorGroupWaitingTexts) {
-        spanExistGroupWaiting = findElement2(selector);
+        spanExistGroupWaiting = findElement(selector);
         if (spanExistGroupWaiting) break;
       }
-      const listItem = await waitForElement2(`div[role="listitem"]:last-child`);
+      const listItem = await waitForElement(`div[role="listitem"]:last-child`);
       let listElement = null;
       if (spanExistGroupWaiting) {
         const parentEl = listItem?.parentElement?.parentElement?.parentElement;
@@ -455,13 +456,13 @@
       const selectorsContainerList = lang === "vi" ? SELECTOR_VI.listElementContainers : SELECTOR.listElementContainers;
       let listElement = null;
       for (const selector of selectorsContainerList) {
-        listElement = await waitForElement2(selector);
+        listElement = await waitForElement(selector);
         if (listElement) break;
       }
       let selectorGroupWaitingTexts = SELECTOR_VI.allGroupsJoinTexts;
       let h2ExistGroupWaiting = null;
       for (const selector of selectorGroupWaitingTexts) {
-        h2ExistGroupWaiting = findElement2(selector, listElement);
+        h2ExistGroupWaiting = findElement(selector, listElement);
         if (h2ExistGroupWaiting) break;
       }
       let maxGroup = 50;
@@ -503,9 +504,9 @@
   }
 
   // dist/content/utils/request.js
-  function sendMessage(type, data) {
+  async function sendMessage(type, data) {
     try {
-      chrome.runtime.sendMessage({
+      await chrome.runtime.sendMessage({
         type,
         data
       });
@@ -532,7 +533,7 @@
 
   // dist/content/utils/storage.js
   async function CL_getIsTest() {
-    const isTest = await GM_getValue(KEY_IS_TEST2);
+    const isTest = await GM_getValue(KEY_IS_TEST);
     return isTest || false;
   }
   async function CL_getTimeDelayInStorage() {
@@ -551,10 +552,36 @@
     return isProgress || false;
   }
 
+  // dist/content/utils/utils.js
+  function getIsMatchUrl(url) {
+    if (!url) return false;
+    return location.href === url;
+  }
+  async function CL_getValue(key, defaultValue = null) {
+    try {
+      const value = await GM_getValue(key);
+      if (value === void 0 || value === null) {
+        return defaultValue;
+      }
+      return value;
+    } catch (error) {
+      logError("Error CL_getValue: ", error);
+      return defaultValue;
+    }
+  }
+  async function CL_setValue(key, value) {
+    try {
+      await GM_setValue(key, value);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   // dist/content/helpers/post.js
   async function pasteContent(content) {
     try {
-      const div = await findDivInputTextbox2();
+      const div = await findDivInputTextbox();
       if (div) {
         const mouseEvt = new MouseEvent("mouseover", {
           bubbles: true,
@@ -622,14 +649,14 @@
       const timePost = timeDelay?.post || initialTimeDelay.post;
       let delayClickToPost = random(
         Math.max(timeClickToPost - 1, 1),
-        Math.max(timeClickToPost + 3, 4)
+        Math.max(timeClickToPost + 3, 3)
       ) * s;
       let delayFillContent = random(
         Math.max(timeFillContent - 1, 1),
-        Math.max(timeFillContent + 3, 4)
+        Math.max(timeFillContent + 3, 3)
       ) * s;
-      let delayFillFile = random(Math.max(timeFillFile - 3, 1), Math.max(timeFillFile + 3, 5)) * s;
-      let delayPost = random(Math.max(timePost - 1, 1), Math.max(timePost + 4, 5)) * s;
+      let delayFillFile = random(Math.max(timeFillFile - 3, 1), Math.max(timeFillFile + 3, 3)) * s;
+      let delayPost = random(Math.max(timePost - 1, 1), Math.max(timePost + 4, 3)) * s;
       if (isTest) {
         delayClickToPost = delayFillContent = delayFillFile = delayPost = s;
       }
@@ -640,7 +667,7 @@
       const contents = dataContent?.contents || [];
       const files = dataContent?.files || [];
       await sleep(delayClickToPost);
-      const div = await findDivToPost2();
+      const div = await findDivToPost();
       if (div) {
         const overEvt = new MouseEvent("mouseover", {
           bubbles: true,
@@ -650,16 +677,16 @@
         await sleep(random(2, 4) * 100);
         div.click();
         await sleep(500);
-        if (!getIsExistDialog2()) {
+        if (!getIsExistDialog()) {
           logError("Dialog not found, try again first time");
-          const node = await findDivToPost2();
+          const node = await findDivToPost();
           if (node) {
             node.click();
           }
           await sleep(500);
-          if (!getIsExistDialog2()) {
+          if (!getIsExistDialog()) {
             logError("Dialog not found, try again second time");
-            const node2 = await findDivToPost2();
+            const node2 = await findDivToPost();
             if (node2) {
               const evt = new MouseEvent("click", {
                 bubbles: true,
@@ -678,8 +705,9 @@
         fillFile(files);
         await sleep(delayPost);
         if (!isTest) {
-          if (getIsExistDialog2()) {
-            await findButtonPostAndClick2();
+          if (getIsExistDialog()) {
+            await findButtonPostAndClick();
+            CL_setValue(KEY_LAST_TIME_POST, now());
           } else {
             logError("Dialog not found, can not post this group");
           }
@@ -698,41 +726,11 @@
     }
   }
 
-  // dist/content/utils/utils.js
-  function getIsMatchUrl(url) {
-    if (!url) return false;
-    return location.href === url;
-  }
-  async function CL_getValue(key, defaultValue = null) {
-    try {
-      const value = await GM_getValue(key);
-      if (value === void 0 || value === null) {
-        return defaultValue;
-      }
-      return value;
-    } catch (error) {
-      return defaultValue;
-    }
-  }
-  async function CL_setValue(key, value) {
-    try {
-      await GM_setValue(key, value);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
-
   // dist/content/content-src.js
   async function main() {
     console.log("content script is running...");
     try {
       notificationContainer({});
-      console.log(
-        "IS scroll",
-        await CL_getValue(KEY_IS_SCROLL_DETECT_LIST_GROUP)
-      );
-      console.log("TASK", await CL_getValue(KEY_POST));
       if (getIsMatchUrl(URL_LIST_GROUPS)) {
         const isGetList = await CL_getValue(KEY_IS_SCROLL_DETECT_LIST_GROUP);
         if (isGetList) {
@@ -762,9 +760,29 @@
           const timeDelayNext = timeDelay.openNewTab % 2 === 0 ? timeDelay.openNewTab / 2 : (timeDelay.openNewTab + 1) / 2;
           await sleep(timeDelayNext * 1e3);
           sendMessage(KEY_NEXT_POST_GROUP, {});
+          const isTest = await CL_getValue(KEY_IS_TEST, false);
+          if (isTest) {
+            setTimeout(() => {
+              sendMessage(KEY_CLOSE_THIS_TAB, {});
+            }, 15 * 1e3);
+          } else {
+            setTimeout(
+              () => {
+                sendMessage(KEY_CLOSE_THIS_TAB, {});
+              },
+              random(35, 55) * 1e3
+            );
+            setTimeout(
+              () => {
+                if (getIsExistDialog()) {
+                  clickOutSideHideDialog();
+                }
+              },
+              random(10, 20) * 1e3
+            );
+          }
         }
       } catch (error) {
-        console.log(error);
       }
     } catch (error) {
       logError("Error at content main: ", error);
