@@ -459,7 +459,7 @@
         listElement = await waitForElement(selector);
         if (listElement) break;
       }
-      let selectorGroupWaitingTexts = SELECTOR_VI.allGroupsJoinTexts;
+      let selectorGroupWaitingTexts = lang === "vi" ? SELECTOR_VI.allGroupsJoinTexts : SELECTOR.allGroupsJoinTexts;
       let h2ExistGroupWaiting = null;
       for (const selector of selectorGroupWaitingTexts) {
         h2ExistGroupWaiting = findElement(selector, listElement);
