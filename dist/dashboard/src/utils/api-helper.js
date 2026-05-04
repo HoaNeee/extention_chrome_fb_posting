@@ -8,14 +8,13 @@
 
 import {
   KEY_CLEAR_NOTIFICATION,
+  KEY_CURRENT_WINDOW_ID,
   KEY_NOTIFICATION,
   KEY_REGISTER_MENU_COMMAND,
   KEY_UNREGISTER_MENU_COMMAND,
   KEY_XMLHTTP_REQUEST,
   KEY_XMLHTTP_REQUEST_RESPONSE,
 } from "../../../contants/constant-extention.js";
-import { KEY_TAB } from "../../../contants/contants.js";
-import { getIsCorrectPostURL, logError } from "../../../utils/utils.js";
 
 // ============================================================
 // STORAGE: DB_getValue, DB_setValue, DB_deleteValue, DB_listValues
@@ -251,6 +250,7 @@ async function DB_openInTab(url, options) {
   const tab = await chrome.tabs.create({
     url: url,
     active: options?.active,
+    windowId: options?.windowId || (await DB_getValue(KEY_CURRENT_WINDOW_ID)),
   });
   return tab.id;
 }

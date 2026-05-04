@@ -1,3 +1,4 @@
+import { KEY_CURRENT_WINDOW_ID } from "../contants/constant-extention.js";
 import { initLanguage, logError } from "../utils/utils.js";
 import { dialogContainer } from "./src/draw_element/dialog.js";
 import { createPanel } from "./src/draw_element/panel.js";
@@ -8,10 +9,16 @@ import {
   clearAndCreateSchedulerAlarm,
   getSchedulerService,
 } from "./src/services/scheduler-service.js";
+import { DB_setValue } from "./src/utils/api-helper.js";
 
 async function main() {
   try {
     await initLanguage();
+
+    const currentWindow = await chrome.windows.getCurrent();
+
+    DB_setValue(KEY_CURRENT_WINDOW_ID, currentWindow.id);
+
     const mainElement = document.querySelector("main");
 
     dialogContainer({ anchorElem: document.body });

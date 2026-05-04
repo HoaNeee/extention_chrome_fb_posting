@@ -19,6 +19,7 @@ import {
   getListTitle,
   logActions,
   logError,
+  random,
   shuffleArray,
 } from "../../../utils/utils.js";
 import {
@@ -188,8 +189,11 @@ async function checkPostedAllGroupOrMaxGroupPerTime() {
     const currentLengthPost = (await DB_getValue(KEY_POST_LENGTH)) || 0;
     const maxGroupPerTime =
       (await DB_getValue(KEY_MAX_GROUP_PER_TIME)) || MAX_GROUP_PER_TIME_INITIAL;
+    const per = random(0, 10);
+    const diff = per >= 7 ? -1 : 0;
+    const maxGroupPerTimeDiff = maxGroupPerTime + diff;
     if (
-      currentLengthPost >= maxGroupPerTime ||
+      currentLengthPost >= maxGroupPerTimeDiff ||
       (await checkIsPostedAllGroup())
     ) {
       if (await checkIsPostedAllGroup()) {

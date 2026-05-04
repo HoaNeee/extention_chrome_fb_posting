@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "FB Tools",
-  "version": "1.1.1",
-  "description": "Help to post in groups",
+  "name": "FB Tools (New Version)",
+  "version": "2.0.0",
+  "description": "Help to post in many groups",
   "icons": {
     "16": "icons/icon-16.png",
     "48": "icons/icon-48.png",
