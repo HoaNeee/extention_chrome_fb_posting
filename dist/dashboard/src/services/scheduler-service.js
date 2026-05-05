@@ -104,17 +104,21 @@ async function getSchedulerService() {
   }
   return scheduler;
 }
-
+let timeoutId = null;
 async function clearAndCreateSchedulerAlarm() {
   try {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
     const isProgress = await getProgress();
     if (isProgress) {
       clearSchedulerAuto();
       return;
     }
     clearSchedulerAuto();
-    await sleep(2000);
-    createSchedulerAuto();
+    timeoutId = setTimeout(() => {
+      createSchedulerAuto();
+    }, 2000);
   } catch (error) {
     logError("Error clearAndCreateSchedulerAlarm:", error);
   }

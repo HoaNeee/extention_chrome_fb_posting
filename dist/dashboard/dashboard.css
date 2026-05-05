@@ -157,6 +157,7 @@ input::placeholder {
   opacity: 0.6 !important;
   user-select: none;
   cursor: not-allowed !important;
+  pointer-events: none !important;
 }
 
 label {

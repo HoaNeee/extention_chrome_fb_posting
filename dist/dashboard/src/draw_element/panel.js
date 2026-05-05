@@ -159,7 +159,7 @@ function drawInnerRoot() {
           </div>
           <div class="${prefix}field-container field-checkbox">
             <input type="checkbox" id="${prefix}checkbox-is-fix-steal-focus">
-            <label for="${prefix}checkbox-is-fix-steal-focus" style="user-select: none;">${getTextWithLanguage({ vi: "Tránh nhảy tab (thử nghiệm)", en: "Fix steal focus (Beta)" })}</label>
+            <label for="${prefix}checkbox-is-fix-steal-focus" style="user-select: none;">${getTextWithLanguage({ vi: "Tránh nhảy tab", en: "Fix steal focus" })}</label>
           </div>
           <div class="${prefix}field-container field-checkbox">
             <input type="checkbox" id="${prefix}checkbox-is-shuffle-scheduler-time">
@@ -938,45 +938,6 @@ async function createPanel(doc = document.body) {
       const btnContinue = document.querySelector(`#tm_btn-continue-post`);
       if (btnContinue) {
         btnContinue.addEventListener("click", async () => {
-          // const needs = await getListGroupsNeedPostInStorage();
-          // const groups = needs?.groups || [];
-          // if (!groups || !groups.length) {
-          //   showNotify({
-          //     message: "No groups need to post",
-          //     type: "error",
-          //   });
-          //   return;
-          // }
-
-          // try {
-          //   DB_setValue(KEY_STOP_TASK, false);
-          //   setProgress(true);
-
-          //   let id = await getRandomIndexGroupChecked();
-          //   if (!id) {
-          //     await resetPostedGroupAndSave();
-          //     id = await getRandomIndexGroupChecked();
-          //   }
-          //   setCurrentIndexGroupPost(id);
-
-          //   const needs = await getCurrentGroupNeedPost();
-          //   const groups = needs?.groups || [];
-          //   const posteds = (await DB_getValue(KEY_GROUPS_POSTED)) || [];
-
-          //   const task = groups.find(
-          //     (group) =>
-          //       group.status === "pending" && !posteds.includes(group.id_href),
-          //   );
-          //   if (task) {
-          //     await sleep(1000);
-          //     // await openNewTask({ task, isDelay: false });
-          //   } else {
-          //     setProgress(false);
-          //   }
-          // } catch (error) {
-          //   setProgress(false);
-          //   logError("Error at btnContinue click event: ", error);
-          // }
           try {
             await automationContinue();
           } catch (error) {

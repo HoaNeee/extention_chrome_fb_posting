@@ -2,7 +2,11 @@ import { KEY_CURRENT_WINDOW_ID } from "../contants/constant-extention.js";
 import { initLanguage, logError } from "../utils/utils.js";
 import { dialogContainer } from "./src/draw_element/dialog.js";
 import { createPanel } from "./src/draw_element/panel.js";
-import { getAllFieldsSetting } from "./src/helpers/elementDom.js";
+import {
+  disabledElement,
+  enabledElement,
+  getAllFieldsSetting,
+} from "./src/helpers/elementDom.js";
 import { initialData } from "./src/helpers/initial.js";
 import addValueChangeListener from "./src/listener/addValueChangeListener.js";
 import {
@@ -36,7 +40,16 @@ async function main() {
     addValueChangeListener(async (newVal) => {
       try {
         setIsProcessing(newVal);
+        if (newVal) {
+          disabledElement({ selector: "#tm_btn-auto" });
+          disabledElement({ selector: "#tm_btn-continue-post" });
+          disabledElement({ selector: "#tm_btn-get-data-groups" });
+        }
         if (!newVal) {
+          enabledElement({ selector: "#tm_btn-auto" });
+          enabledElement({ selector: "#tm_btn-continue-post" });
+          enabledElement({ selector: "#tm_btn-get-data-groups" });
+
           const scheduler = await getSchedulerService();
           if (scheduler.isScheduler) {
             clearAndCreateSchedulerAlarm();

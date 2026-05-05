@@ -33,7 +33,7 @@ export default function addValueChangeListener(cb) {
         if (changes[key]) {
           const newVal = changes[key]?.newValue;
           if (key === KEY_IS_IN_PROGRESS) {
-            cb?.(changes[key].newValue);
+            cb?.(newVal);
           }
           if (key === KEY_IS_DEVELOPER_MODE) {
             if (newVal) {

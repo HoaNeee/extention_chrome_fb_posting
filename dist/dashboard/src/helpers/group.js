@@ -167,7 +167,7 @@ async function getCurrentDataGroupSavedNeedPost() {
       id = await getRandomIndexGroupChecked();
     }
     if (!id) {
-      logActions("No group checked -> stop scheduler");
+      logActions("No group checked in storage");
       return null;
     }
     const data = (await getDataSavedInStorage()) || [];
