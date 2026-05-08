@@ -1,10 +1,10 @@
 import {
   KEY_ALL_GROUPS,
-  KEY_COUNT_RELOAD_DASHBOARD,
   KEY_COUNT_RESET_GROUPS,
   KEY_IS_DEVELOPER_MODE,
   KEY_IS_IN_PROGRESS,
   KEY_IS_SHUFFLE_SCHEDULER_TIME,
+  KEY_IS_SPAMMED,
   KEY_IS_TEST,
   KEY_LAST_TIME_POST,
   KEY_MAX_GROUP_PER_TIME,
@@ -17,9 +17,9 @@ import {
   getTimeToPostOneGroup,
   getTotalGroupsNeedPost,
 } from "../helpers/group.js";
-import { getNextTimePost, getSchedulerWithType } from "../helpers/scheduler.js";
+import { getNextTimePost } from "../helpers/scheduler.js";
 import { DB_getValue } from "../utils/api-helper.js";
-import { getTextWithLanguage, logError, random } from "../../../utils/utils.js";
+import { getTextWithLanguage, logError } from "../../../utils/utils.js";
 import {
   getAllGroupPostedsInStorage,
   getListGroupsNeedPostInStorage,
@@ -46,10 +46,10 @@ function getDataSavedHTML({
   isDeveloperMode = false,
   maxGroupPerTime = 0,
   countResetGroups = 0,
-  countReload = 0,
   estimatedTotalTime = null,
   isFixStealFocus = false,
   isShuffleTime = false,
+  isSpammed = false,
 }) {
   /*
     type of current group: {
@@ -152,17 +152,17 @@ function getDataSavedHTML({
           <div>${getTextWithLanguage({ vi: "Nhóm hiện tại cần đăng", en: "Total Current Need Post" })}: <b>${currentGroupNeedPost?.groups?.length || 0}</b></div>
           <div>${getTextWithLanguage({ vi: "Nhóm hiện tại đã đăng", en: "Total Current Groups Posted" })}: <b>${totalCurrentGroupsPosted}</b></div>
           <div>${getTextWithLanguage({ vi: "Số lần đặt lại nhóm", en: "Count Reset Groups" })}: <b>${countResetGroups}</b></div>
-          <div>${getTextWithLanguage({ vi: "Số lần tải lại trang", en: "Count Reload Dashboard" })}: <b>${countReload}</b></div>
           <div>${getTextWithLanguage({ vi: "Tên nhóm hiện tại", en: "Current Group title" })}: ${currentGroupNeedPost?.name || currentGroupNeedPost?.title || "N/A"}</div>
+          <div id="${prefix}is-spammed-status">${getTextWithLanguage({ vi: "Đang bị spam", en: "Is Spammed" })}: <span style="color: ${isSpammed ? "var(--tm-text-danger)" : "var(--tm-text-success)"};"><b>${getTextWithLanguage({ vi: isSpammed ? "Có" : "Không", en: isSpammed ? "Yes" : "No" })}</b></span></div>
           <div id="${prefix}is-processing-status">${getTextWithLanguage({ vi: "Đang chạy auto", en: "Is Processing" })}: <span style="color: ${colorByDisabled(isProcessing)};">${enabledString(isProcessing)}</span></div>
-            <div id="${prefix}is-scheduler-status">${getTextWithLanguage({ vi: "Đang lên lịch", en: "Is Scheduler" })}: <span style="color: ${colorByDisabled(isScheduler)};">${enabledString(isScheduler)}</span></div>
-            <div id="${prefix}is-fix-steal-focus-status">${getTextWithLanguage({ vi: "Tránh nhảy tab", en: "Is Fix Steal Focus" })}: <span style="color: ${colorByDisabled(isFixStealFocus)};">${enabledString(isFixStealFocus)}</span></div>
-            <div id="${prefix}is-shuffle-time-status">${getTextWithLanguage({ vi: "Trộn lịch đăng", en: "Is Shuffle Time" })}: <span style="color: ${colorByDisabled(isShuffleTime)};">${enabledString(isShuffleTime)}</span></div>
+          <div id="${prefix}is-scheduler-status">${getTextWithLanguage({ vi: "Đang lên lịch", en: "Is Scheduler" })}: <span style="color: ${colorByDisabled(isScheduler)};">${enabledString(isScheduler)}</span></div>
+          <div id="${prefix}is-fix-steal-focus-status">${getTextWithLanguage({ vi: "Tránh nhảy tab", en: "Is Fix Steal Focus" })}: <span style="color: ${colorByDisabled(isFixStealFocus)};">${enabledString(isFixStealFocus)}</span></div>
+          <div id="${prefix}is-shuffle-time-status">${getTextWithLanguage({ vi: "Trộn lịch đăng", en: "Is Shuffle Time" })}: <span style="color: ${colorByDisabled(isShuffleTime)};">${enabledString(isShuffleTime)}</span></div>
           ${forDevHtml}
           <div style="word-break: break-word;">${getTextWithLanguage({ vi: "Nhóm hiện tại", en: "Current Group" })}: ${currentGroup?.id_href || getTextWithLanguage({ en: "Available", vi: "Không có sẵn" })}</div>
           <div>${getTextWithLanguage({ vi: "Trạng thái nhóm hiện tại", en: "Current Group status" })}: <span style="color: ${colorByStatus(currentGroup?.status)};"> <b>${getStatusString(currentGroup?.status || getTextWithLanguage({ en: "Available", vi: "Không có sẵn" }))}</b></span></div>
 					<div>${getTextWithLanguage({ vi: "Bài đăng gần nhất", en: "Last time post" })}: ${lastTimePost ? new Date(lastTimePost).toLocaleString() : "N/A"}</div>
-          <div>${getTextWithLanguage({ vi: "Thời gian đăng tiếp theo", en: "Next time post" })}: ${nextTimePost ? `${nextTime.getHours()}:${nextTime.getMinutes()}` : "N/A"}</div>
+          <div>${getTextWithLanguage({ vi: "Thời gian đăng tiếp theo", en: "Next time post" })}: ${nextTimePost ? `${nextTime.getHours()}:${nextTime.getMinutes()} ${isSpammed ? getTextWithLanguage({ vi: "(Tạm dừng do bị spam)", en: "(Paused due to being spammed)" }) : ""}` : "N/A"}</div>
           <div>${getTextWithLanguage({
             vi: "Thời gian dự kiến đăng tất cả nhóm",
             en: "Estimated time to post all groups",
@@ -242,9 +242,9 @@ async function updateDataSavedInfo() {
         maxGroupPerTime,
         countResetGroups: (await DB_getValue(KEY_COUNT_RESET_GROUPS)) || 0,
         estimatedTotalTime,
-        countReload: (await DB_getValue(KEY_COUNT_RELOAD_DASHBOARD)) || 0,
         isFixStealFocus,
         isShuffleTime,
+        isSpammed: (await DB_getValue(KEY_IS_SPAMMED)) || false,
       });
       dataSavedEl.innerHTML = html;
     }

@@ -9,6 +9,7 @@ import {
   KEY_REGISTER_MENU_COMMAND,
   KEY_SCHEDULER_ALARMS,
   KEY_UNREGISTER_MENU_COMMAND,
+  KEY_UPDATE_IS_SPAMMED,
   KEY_UPDATE_STATUS_TASK,
   KEY_XMLHTTP_REQUEST,
   STATUS_RESPONSE,
@@ -17,6 +18,7 @@ import {
   KEY_CAN_POST_THIS_TAB,
   KEY_IS_SCROLL_DETECT_LIST_GROUP,
   KEY_IS_SHUFFLE_SCHEDULER_TIME,
+  KEY_IS_SPAMMED,
   KEY_TAB,
   STATUS_TASK,
   URL_LIST_GROUPS,
@@ -43,6 +45,7 @@ import {
 import {
   clearAndCreateSchedulerAlarm,
   clearSchedulerAuto,
+  createSchedulerAuto,
   getSchedulerService,
 } from "./dashboard/src/services/scheduler-service.js";
 import { DB_openInTab } from "./dashboard/src/utils/api-helper.js";
@@ -67,11 +70,13 @@ import {
 
 //KEY TEST, DELETE AFTER FINISH
 const KEY_COUNT_TRIGGER_TEST = "count triggered";
+const KEY_OPEN_DASHBOARD = "OPEN_DASHBOARD";
 
 //ALARMS
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === KEY_SCHEDULER_ALARMS) {
     try {
+      BG_setValue(KEY_IS_SPAMMED, false);
       const tabs = await chrome.tabs.query({});
       const isProgress = await getProgressTool();
 
@@ -225,7 +230,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         handleCanPostThisTab(sender, sendResponse);
         return true;
 
-      case "OPEN_DASHBOARD":
+      case KEY_OPEN_DASHBOARD:
         handleOpenDashboard();
         break;
 
@@ -239,6 +244,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       case KEY_NEXT_POST_GROUP:
         nextGroupPost();
+        break;
+
+      case KEY_UPDATE_IS_SPAMMED:
+        handleUpdateIsSpammed(msg.data.isSpammed);
         break;
     }
   } catch (error) {
@@ -254,7 +263,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 async function nextGroupPost() {
   try {
     const isStop = await getIsStopTaskInStorage();
-    if (isStop) {
+    const isSpammed = (await BG_getValue(KEY_IS_SPAMMED)) || false;
+    if (isStop || isSpammed) {
+      setProgressTool(false);
       return;
     }
     const { isPostedAll, isPostedMaxGroupPerTime } =
@@ -437,6 +448,26 @@ async function handleGetCurrentDataGroupSavedNeedPost(sendResponse) {
     });
   } catch (error) {
     logError("Error get current data group saved need post: ", error);
+  }
+}
+
+async function handleUpdateIsSpammed(isSpammed) {
+  try {
+    BG_setValue(KEY_IS_SPAMMED, isSpammed);
+    if (isSpammed) {
+      setProgressTool(false);
+      logActions("User is spammed, stop task");
+      const scheduler = await getSchedulerService();
+      if (scheduler.isScheduler) {
+        clearSchedulerAuto();
+        const nextTime = now() + 1000 * 60 * 60 * 24 * 2; // 2 day
+        setTimeout(() => {
+          createSchedulerAuto(nextTime);
+        }, 10000);
+      }
+    }
+  } catch (error) {
+    logError("Error update is spammed: ", error);
   }
 }
 

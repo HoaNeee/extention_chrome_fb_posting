@@ -8,12 +8,12 @@ import {
 import { getProgress } from "../helpers/storage.js";
 import { DB_getValue, DB_setValue } from "../utils/api-helper.js";
 
-async function createSchedulerAuto() {
+async function createSchedulerAuto(forceTime = 0) {
   try {
     const scheduler = await getSchedulerService();
     const isScheduler = scheduler?.isScheduler || false;
     if (isScheduler) {
-      const nextTime = await getNextTimePost();
+      const nextTime = forceTime || (await getNextTimePost());
       chrome.alarms.create(KEY_SCHEDULER_ALARMS, {
         when: nextTime,
       });

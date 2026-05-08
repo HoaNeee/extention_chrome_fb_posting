@@ -1,13 +1,11 @@
 import {
-  KEY_IS_TEST,
   KEY_LAST_TIME_POST,
-  KEY_POST,
-  KEY_POST_LENGTH,
   SELECTOR_RAW,
   STATUS_TASK,
 } from "../../contants/contants.js";
 import {
   KEY_GET_CURRENT_DATA_GROUP_SAVED_NEED_POST,
+  KEY_UPDATE_IS_SPAMMED,
   KEY_UPDATE_STATUS_TASK,
 } from "../../contants/constant-extention.js";
 import { initialTimeDelay } from "../../contants/contants.js";
@@ -21,6 +19,7 @@ import {
   sleep,
 } from "../../utils/utils.js";
 import {
+  checkIsSpammed,
   findButtonPostAndClick,
   findDivInputTextbox,
   findDivToPost,
@@ -214,6 +213,12 @@ async function postHelper(task) {
         if (getIsExistDialog()) {
           await findButtonPostAndClick();
           CL_setValue(KEY_LAST_TIME_POST, now());
+          const isSpammed = checkIsSpammed();
+          if (isSpammed) {
+            sendMessage(KEY_UPDATE_IS_SPAMMED, {
+              isSpammed,
+            });
+          }
         } else {
           logError("Dialog not found, can not post this group");
         }

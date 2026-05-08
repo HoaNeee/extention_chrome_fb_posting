@@ -9,10 +9,6 @@ import {
 } from "./src/helpers/elementDom.js";
 import { initialData } from "./src/helpers/initial.js";
 import addValueChangeListener from "./src/listener/addValueChangeListener.js";
-import {
-  clearAndCreateSchedulerAlarm,
-  getSchedulerService,
-} from "./src/services/scheduler-service.js";
 import { DB_setValue } from "./src/utils/api-helper.js";
 
 async function main() {
@@ -49,11 +45,6 @@ async function main() {
           enabledElement({ selector: "#tm_btn-auto" });
           enabledElement({ selector: "#tm_btn-continue-post" });
           enabledElement({ selector: "#tm_btn-get-data-groups" });
-
-          const scheduler = await getSchedulerService();
-          if (scheduler.isScheduler) {
-            clearAndCreateSchedulerAlarm();
-          }
         }
       } catch (error) {
         logError("Error at dashboard addValueChangeListener: ", error);

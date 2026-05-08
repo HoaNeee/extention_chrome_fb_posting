@@ -21,6 +21,7 @@ import {
   KEY_IS_DARK_THEME,
   KEY_LANGUAGE,
   KEY_IS_SHUFFLE_SCHEDULER_TIME,
+  KEY_IS_SPAMMED,
 } from "../../../contants/contants.js";
 import {
   getCurrentGroupNeedPost,
@@ -1300,9 +1301,20 @@ async function createPanel(doc = document.body) {
           `#tm_checkbox-is-processing`,
         );
         if (checkboxIsProcessing) {
-          checkboxIsProcessing.addEventListener("change", (e) => {
-            const val = e.target.checked;
-            DB_setValue(KEY_IS_IN_PROGRESS, val);
+          checkboxIsProcessing.addEventListener("change", async (e) => {
+            try {
+              const val = e.target.checked;
+              DB_setValue(KEY_IS_IN_PROGRESS, val);
+              if (!val) {
+                const scheduler = await getSchedulerService();
+                const isSpammed = (await DB_getValue(KEY_IS_SPAMMED)) || false;
+                if (scheduler.isScheduler && !isSpammed) {
+                  clearAndCreateSchedulerAlarm();
+                }
+              }
+            } catch (error) {
+              logError("Error checkboxIsProcessing change: ", error);
+            }
           });
         }
 

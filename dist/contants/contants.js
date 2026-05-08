@@ -49,11 +49,7 @@ const KEY_IS_FIX_STEAL_FOCUS = "is_fix_steal_focus";
 
 const KEY_IS_SHUFFLE_SCHEDULER_TIME = "is_shuffle_scheduler_time";
 
-const KEY_IS_RELOAD_DASHBOARD = "is_reload_dashboard";
-const KEY_COUNT_RELOAD_DASHBOARD = "count_reload_dashboard";
-const KEY_COUNT_NOT_RELOAD_DASHBOARD = "count_not_reload_dashboard";
-const KEY_SCHEDULER_RELOAD_DASHBOARD = "scheduler_reload_dashboard";
-const KEY_LAST_TIME_RELOAD_DASHBOARD = "last_time_reload_dashboard";
+const KEY_IS_SPAMMED = "is_spammed";
 
 const KEY_CAN_POST_THIS_TAB = "can_post_this_tab";
 
@@ -129,7 +125,7 @@ const SELECTOR = {
   elementsTextBoxEditor: [`div[contenteditable="true"][role="textbox"]`],
 
   elementsSpammed: [
-    `//div[contains(text(), "You have posted too many times. Please try again later.")]`,
+    `//div[contains(text(), "To protect our community from spam, we limit how often you can post, comment, or do other things. Please try again later.")]`,
   ],
 
   listElementContainers: [`div[aria-label="Preview of a group"][role="main"]`],
@@ -151,7 +147,7 @@ const SELECTOR_VI = {
   elementsCloseDialog: ['//div[@aria-label="Đóng hộp thoại của công cụ tạo"]'],
 
   elementsSpammed: [
-    `//div[contains(text(), "Bạn đã gửi quá nhiều bài viết. Vui lòng thử lại sau.")]`,
+    `//div[contains(text(), "Để bảo vệ cộng đồng khỏi spam, chúng tôi giới hạn tần suất bạn đăng bài, bình luận hoặc làm các việc khác trong khoảng thời gian nhất định. Bạn có thể thử lại sau.")]`,
   ],
 
   listElementContainers: [`div[aria-label="Bản xem trước nhóm"]`],
@@ -208,11 +204,6 @@ export {
   KEY_TITLE_STRICTLY_MATCH_GROUP,
   STATUS_TASK,
   SCHEDULER_TYPE,
-  KEY_IS_RELOAD_DASHBOARD,
-  KEY_COUNT_RELOAD_DASHBOARD,
-  KEY_SCHEDULER_RELOAD_DASHBOARD,
-  KEY_COUNT_NOT_RELOAD_DASHBOARD,
-  KEY_LAST_TIME_RELOAD_DASHBOARD,
   URL_LIST_GROUPS,
   SELECTOR,
   SELECTOR_VI,
@@ -220,4 +211,5 @@ export {
   KEY_TAB,
   KEY_CAN_POST_THIS_TAB,
   KEY_IS_SHUFFLE_SCHEDULER_TIME,
+  KEY_IS_SPAMMED,
 };

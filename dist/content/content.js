@@ -9,6 +9,7 @@
   var KEY_GET_CURRENT_DATA_GROUP_SAVED_NEED_POST = "get_current_data_group_saved_need_post";
   var KEY_UPDATE_STATUS_TASK = "update_status_task_posting";
   var KEY_NEXT_POST_GROUP = "next_post_group";
+  var KEY_UPDATE_IS_SPAMMED = "update_is_spammed";
 
   // dist/contants/contants.js
   var KEY_ALL_GROUPS = "all_groups";
@@ -49,7 +50,7 @@
     elementsCreatePost: [`div[aria-label="Create post"][role="dialog"]`],
     elementsTextBoxEditor: [`div[contenteditable="true"][role="textbox"]`],
     elementsSpammed: [
-      `//div[contains(text(), "You have posted too many times. Please try again later.")]`
+      `//div[contains(text(), "To protect our community from spam, we limit how often you can post, comment, or do other things. Please try again later.")]`
     ],
     listElementContainers: [`div[aria-label="Preview of a group"][role="main"]`],
     waitingGroups: [`//span[contains(text(),"Request to join group pending")]`],
@@ -62,7 +63,7 @@
     elementsTextBoxEditor: [`div[contenteditable="true"][role="textbox"]`],
     elementsCloseDialog: ['//div[@aria-label="\u0110\xF3ng h\u1ED9p tho\u1EA1i c\u1EE7a c\xF4ng c\u1EE5 t\u1EA1o"]'],
     elementsSpammed: [
-      `//div[contains(text(), "B\u1EA1n \u0111\xE3 g\u1EEDi qu\xE1 nhi\u1EC1u b\xE0i vi\u1EBFt. Vui l\xF2ng th\u1EED l\u1EA1i sau.")]`
+      `//div[contains(text(), "\u0110\u1EC3 b\u1EA3o v\u1EC7 c\u1ED9ng \u0111\u1ED3ng kh\u1ECFi spam, ch\xFAng t\xF4i gi\u1EDBi h\u1EA1n t\u1EA7n su\u1EA5t b\u1EA1n \u0111\u0103ng b\xE0i, b\xECnh lu\u1EADn ho\u1EB7c l\xE0m c\xE1c vi\u1EC7c kh\xE1c trong kho\u1EA3ng th\u1EDDi gian nh\u1EA5t \u0111\u1ECBnh. B\u1EA1n c\xF3 th\u1EC3 th\u1EED l\u1EA1i sau.")]`
     ],
     listElementContainers: [`div[aria-label="B\u1EA3n xem tr\u01B0\u1EDBc nh\xF3m"]`],
     waitingGroups: [`//span[contains(text(),"Y\xEAu c\u1EA7u tham gia nh\xF3m \u0111ang ch\u1EDD")]`],
@@ -362,6 +363,22 @@
         closeElement.click();
         return;
       }
+    }
+  }
+  function checkIsSpammed() {
+    try {
+      const lang = getLanguage();
+      const selectors = lang === "vi" ? SELECTOR_VI.elementsSpammed : SELECTOR.elementsSpammed;
+      for (const selector of selectors) {
+        const node = findElement(selector);
+        if (node) {
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      logError("Error at checkWasBeSpam: ", error);
+      return false;
     }
   }
 
@@ -708,6 +725,12 @@
           if (getIsExistDialog()) {
             await findButtonPostAndClick();
             CL_setValue(KEY_LAST_TIME_POST, now());
+            const isSpammed = checkIsSpammed();
+            if (isSpammed) {
+              sendMessage(KEY_UPDATE_IS_SPAMMED, {
+                isSpammed
+              });
+            }
           } else {
             logError("Dialog not found, can not post this group");
           }

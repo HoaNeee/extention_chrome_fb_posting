@@ -224,7 +224,7 @@ function checkIsSpammed() {
     return false;
   } catch (error) {
     logError("Error at checkWasBeSpam: ", error);
-    throw new Error("Error at checkWasBeSpam: " + error);
+    return false;
   }
 }
 
@@ -333,4 +333,5 @@ export {
   hideElement,
   showElement,
   findElement,
+  checkIsSpammed,
 };

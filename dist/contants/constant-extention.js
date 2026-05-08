@@ -38,6 +38,8 @@ const KEY_SCHEDULER_ALARMS = "scheduler_alarms";
 
 const KEY_CURRENT_WINDOW_ID = "current_window_id";
 
+const KEY_UPDATE_IS_SPAMMED = "update_is_spammed";
+
 export {
   KEY_NOTIFICATION,
   KEY_OPEN_IN_TAB,
@@ -61,4 +63,5 @@ export {
   KEY_NEXT_POST_GROUP,
   KEY_SCHEDULER_ALARMS,
   KEY_CURRENT_WINDOW_ID,
+  KEY_UPDATE_IS_SPAMMED,
 };
