@@ -986,6 +986,7 @@ async function createPanel(doc = document.body) {
         btnAuto.addEventListener("click", async () => {
           //auto
           try {
+            DB_setValue(KEY_IS_SPAMMED, false);
             await automation();
           } catch (error) {
             setProgress(false);

@@ -1,6 +1,7 @@
 import {
   KEY_CLOSE_THIS_TAB,
   KEY_NEXT_POST_GROUP,
+  KEY_UPDATE_IS_SPAMMED,
 } from "../contants/constant-extention.js";
 import {
   KEY_ALL_GROUPS,
@@ -12,7 +13,11 @@ import {
 } from "../contants/contants.js";
 import { logError, random, sleep } from "../utils/utils.js";
 import { notificationContainer, showNotify } from "./elements/notify.js";
-import { clickOutSideHideDialog, getIsExistDialog } from "./helpers/dom.js";
+import {
+  checkIsSpammed,
+  clickOutSideHideDialog,
+  getIsExistDialog,
+} from "./helpers/dom.js";
 import { getListGroups } from "./helpers/groups.js";
 import { postHelper } from "./helpers/post.js";
 import { sendMessage, sendMessageWithResponse } from "./utils/request.js";
@@ -80,8 +85,15 @@ async function main() {
           );
 
           setTimeout(
-            () => {
+            async () => {
               if (getIsExistDialog()) {
+                const isSpammed = checkIsSpammed();
+                if (isSpammed) {
+                  sendMessage(KEY_UPDATE_IS_SPAMMED, {
+                    isSpammed,
+                  });
+                  await sleep(2000);
+                }
                 clickOutSideHideDialog();
               }
             },

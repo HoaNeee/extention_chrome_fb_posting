@@ -63,7 +63,7 @@
     elementsTextBoxEditor: [`div[contenteditable="true"][role="textbox"]`],
     elementsCloseDialog: ['//div[@aria-label="\u0110\xF3ng h\u1ED9p tho\u1EA1i c\u1EE7a c\xF4ng c\u1EE5 t\u1EA1o"]'],
     elementsSpammed: [
-      `//div[contains(text(), "\u0110\u1EC3 b\u1EA3o v\u1EC7 c\u1ED9ng \u0111\u1ED3ng kh\u1ECFi spam, ch\xFAng t\xF4i gi\u1EDBi h\u1EA1n t\u1EA7n su\u1EA5t b\u1EA1n \u0111\u0103ng b\xE0i, b\xECnh lu\u1EADn ho\u1EB7c l\xE0m c\xE1c vi\u1EC7c kh\xE1c trong kho\u1EA3ng th\u1EDDi gian nh\u1EA5t \u0111\u1ECBnh. B\u1EA1n c\xF3 th\u1EC3 th\u1EED l\u1EA1i sau.")]`
+      `//div[contains(text(), "\u0110\u1EC3 b\u1EA3o v\u1EC7 c\u1ED9ng \u0111\u1ED3ng kh\u1ECFi spam, ch\xFAng t\xF4i gi\u1EDBi h\u1EA1n t\u1EA7n su\u1EA5t b\u1EA1n \u0111\u0103ng b\xE0i, b\xECnh lu\u1EADn ho\u1EB7c l\xE0m c\xE1c vi\u1EC7c kh\xE1c trong kho\u1EA3ng th\u1EDDi gian nh\u1EA5t \u0111\u1ECBnh. B\u1EA1n c\xF3 th\u1EC3 th\u1EED l\u1EA1i sau")]`
     ],
     listElementContainers: [`div[aria-label="B\u1EA3n xem tr\u01B0\u1EDBc nh\xF3m"]`],
     waitingGroups: [`//span[contains(text(),"Y\xEAu c\u1EA7u tham gia nh\xF3m \u0111ang ch\u1EDD")]`],
@@ -723,13 +723,10 @@
         await sleep(delayPost);
         if (!isTest) {
           if (getIsExistDialog()) {
-            await findButtonPostAndClick();
-            CL_setValue(KEY_LAST_TIME_POST, now());
-            const isSpammed = checkIsSpammed();
-            if (isSpammed) {
-              sendMessage(KEY_UPDATE_IS_SPAMMED, {
-                isSpammed
-              });
+            const isProgress = CL_getValue(KEY_IS_IN_PROGRESS);
+            if (isProgress) {
+              await findButtonPostAndClick();
+              CL_setValue(KEY_LAST_TIME_POST, now());
             }
           } else {
             logError("Dialog not found, can not post this group");
@@ -796,8 +793,15 @@
               random(35, 55) * 1e3
             );
             setTimeout(
-              () => {
+              async () => {
                 if (getIsExistDialog()) {
+                  const isSpammed = checkIsSpammed();
+                  if (isSpammed) {
+                    sendMessage(KEY_UPDATE_IS_SPAMMED, {
+                      isSpammed
+                    });
+                    await sleep(2e3);
+                  }
                   clickOutSideHideDialog();
                 }
               },

@@ -147,7 +147,7 @@ const SELECTOR_VI = {
   elementsCloseDialog: ['//div[@aria-label="Đóng hộp thoại của công cụ tạo"]'],
 
   elementsSpammed: [
-    `//div[contains(text(), "Để bảo vệ cộng đồng khỏi spam, chúng tôi giới hạn tần suất bạn đăng bài, bình luận hoặc làm các việc khác trong khoảng thời gian nhất định. Bạn có thể thử lại sau.")]`,
+    `//div[contains(text(), "Để bảo vệ cộng đồng khỏi spam, chúng tôi giới hạn tần suất bạn đăng bài, bình luận hoặc làm các việc khác trong khoảng thời gian nhất định. Bạn có thể thử lại sau")]`,
   ],
 
   listElementContainers: [`div[aria-label="Bản xem trước nhóm"]`],

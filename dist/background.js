@@ -264,7 +264,9 @@ async function nextGroupPost() {
   try {
     const isStop = await getIsStopTaskInStorage();
     const isSpammed = (await BG_getValue(KEY_IS_SPAMMED)) || false;
-    if (isStop || isSpammed) {
+    const isProgress = await getProgressTool();
+
+    if (isStop || isSpammed || !isProgress) {
       setProgressTool(false);
       return;
     }
@@ -431,6 +433,14 @@ async function handleOpenDashboard() {
 
 async function handleGetCurrentDataGroupSavedNeedPost(sendResponse) {
   try {
+    const isProgress = await getProgressTool();
+    if (!isProgress) {
+      sendResponse({
+        status: STATUS_RESPONSE.FAIL,
+        message: "Tool is not running",
+      });
+      return true;
+    }
     const data = await getCurrentDataGroupSavedNeedPost();
     const contents = data?.contents || [];
 

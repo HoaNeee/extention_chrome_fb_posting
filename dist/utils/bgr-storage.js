@@ -8,7 +8,7 @@ import {
   getAllGroupPostedsInStorage,
   setAllGroupPostedsInStorage,
 } from "../dashboard/src/services/groupService.js";
-import { logError } from "./utils.js";
+import { logActions, logError } from "./utils.js";
 
 async function BG_setValue(key, value) {
   await chrome.storage.local.set({ [key]: value });
@@ -52,7 +52,7 @@ async function setStatusTask(status) {
     if (!isProgress) {
       return;
     }
-    console.log("Update status task: ", status);
+    logActions("Update status task: ", status);
     const taskObject = await getTask();
 
     if (!taskObject) {
