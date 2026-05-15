@@ -40,6 +40,8 @@ const KEY_CURRENT_WINDOW_ID = "current_window_id";
 
 const KEY_UPDATE_IS_SPAMMED = "update_is_spammed";
 
+const KEY_ADD_LOG = "add_log";
+
 export {
   KEY_NOTIFICATION,
   KEY_OPEN_IN_TAB,
@@ -64,4 +66,5 @@ export {
   KEY_SCHEDULER_ALARMS,
   KEY_CURRENT_WINDOW_ID,
   KEY_UPDATE_IS_SPAMMED,
+  KEY_ADD_LOG,
 };

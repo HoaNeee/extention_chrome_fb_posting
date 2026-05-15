@@ -9,6 +9,10 @@ import {
   KEY_QUEUE,
   KEY_TITLE_STRICTLY_MATCH_GROUP,
   KEY_LANGUAGE,
+  KEY_IS_FIX_STEAL_ALL_FOCUS,
+  KEY_IS_DEVELOPER_MODE,
+  KEY_HISTORY_LOGS,
+  APP_NAME,
 } from "../../../contants/contants.js";
 import {
   getAllGroupPostedsInStorage,
@@ -16,7 +20,7 @@ import {
 } from "../services/groupService.js";
 import { DB_getValue, DB_setValue } from "../utils/api-helper.js";
 import Queue from "../utils/queue.js";
-import { logActions, now, random } from "../../../utils/utils.js";
+import { logActions, logError, now, random } from "../../../utils/utils.js";
 
 async function setProgress(b) {
   await DB_setValue(KEY_IS_IN_PROGRESS, b);
@@ -136,6 +140,14 @@ async function getIsStealFocusInStorage() {
 
 /**
  *
+ * @returns {Promise<boolean>} The setting for whether to fix the steal all focus issue, defaulting to false if not set
+ */
+async function getIsFixStealAllFocusInStorage() {
+  return (await DB_getValue(KEY_IS_FIX_STEAL_ALL_FOCUS)) || false;
+}
+
+/**
+ *
  * @param {{queue: Array<{name: string, data: any}>, time: number}} queue
  */
 function setQueueInStorage(queue) {
@@ -189,6 +201,48 @@ async function getLanguageInStorage() {
   return lang;
 }
 
+async function getIsDeveloperModeInStorage() {
+  return (await DB_getValue(KEY_IS_DEVELOPER_MODE)) || false;
+}
+
+/**
+ * @returns {Promise<Array<{msgObject: {vi: string, en: string}|string, time: number}>>}  The history logs stored in storage, defaulting to an empty array if not set
+ */
+async function getHistoryLogsInStorage() {
+  return (await DB_getValue(KEY_HISTORY_LOGS)) || [];
+}
+
+/**
+ *
+ * @param {{vi: string, en: string}} msg log to add to history
+ */
+async function addHistoryLog(msg = {}) {
+  if (!msg) {
+    return null;
+  }
+
+  try {
+    const historyLogs = await getHistoryLogsInStorage();
+    const time = now();
+    historyLogs.push({ msg, time });
+    if (historyLogs.length > 150) {
+      historyLogs.shift();
+    }
+    await DB_setValue(KEY_HISTORY_LOGS, historyLogs);
+    return { msg, time };
+  } catch (error) {
+    logError(`Error addHistoryLog`, error);
+  }
+}
+
+async function clearHistoryLogs() {
+  try {
+    await DB_setValue(KEY_HISTORY_LOGS, []);
+  } catch (error) {
+    logError(`Error clearHistoryLogs`, error);
+  }
+}
+
 export {
   setProgress,
   getProgress,
@@ -204,4 +258,9 @@ export {
   setStrictlyMatchTitleGroupInStorage,
   getStrictlyMatchTitleGroupInStorage,
   getLanguageInStorage,
+  getIsFixStealAllFocusInStorage,
+  getIsDeveloperModeInStorage,
+  addHistoryLog,
+  getHistoryLogsInStorage,
+  clearHistoryLogs,
 };

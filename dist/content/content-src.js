@@ -1,4 +1,5 @@
 import {
+  KEY_ADD_LOG,
   KEY_CLOSE_THIS_TAB,
   KEY_NEXT_POST_GROUP,
   KEY_UPDATE_IS_SPAMMED,
@@ -36,7 +37,10 @@ async function main() {
     if (getIsMatchUrl(URL_LIST_GROUPS)) {
       const isGetList = await CL_getValue(KEY_IS_SCROLL_DETECT_LIST_GROUP);
       if (isGetList) {
-        console.log("GET LIST GROUP");
+        sendMessage(KEY_ADD_LOG, {
+          vi: `Bắt đầu lấy danh sách nhóm...`,
+          en: `Start getting list groups...`,
+        });
         await sleep(4000);
         const allGroups = await getListGroups();
         CL_setValue(KEY_ALL_GROUPS, allGroups);
@@ -61,6 +65,10 @@ async function main() {
       const task = responeCanPost.data.task;
 
       if (canPost) {
+        sendMessage(KEY_ADD_LOG, {
+          vi: `Bắt đầu đăng bài trong nhóm ${task?.id_href}`,
+          en: `Start posting in group ${task?.id_href}`,
+        });
         await postHelper(task);
 
         const timeDelay = await CL_getTimeDelayInStorage();
@@ -102,7 +110,7 @@ async function main() {
         }
       }
     } catch (error) {
-      // logError("Error at content main: ", error);
+      logError("Error at content posting main: ", error);
     }
   } catch (error) {
     logError("Error at content main: ", error);

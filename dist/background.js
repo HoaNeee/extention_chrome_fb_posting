@@ -1,4 +1,5 @@
 import {
+  KEY_ADD_LOG,
   KEY_CLEAR_NOTIFICATION,
   KEY_CLOSE_THIS_TAB,
   KEY_GET_CURRENT_DATA_GROUP_SAVED_NEED_POST,
@@ -19,19 +20,25 @@ import {
   KEY_IS_SCROLL_DETECT_LIST_GROUP,
   KEY_IS_SHUFFLE_SCHEDULER_TIME,
   KEY_IS_SPAMMED,
+  KEY_NEXT_TIME_POST_WHEN_SPAMMED,
   KEY_TAB,
   STATUS_TASK,
   URL_LIST_GROUPS,
 } from "./contants/contants.js";
+import { addLog } from "./dashboard/src/draw_element/panel-log.js";
 import {
   checkPostedAllGroupOrMaxGroupPerTime,
   getCurrentDataGroupSavedNeedPost,
   getCurrentGroupNeedPost,
   resetPostedGroupAndSave,
 } from "./dashboard/src/helpers/group.js";
-import { shuffleTimes } from "./dashboard/src/helpers/scheduler.js";
+import {
+  getNextTimePost,
+  shuffleTimes,
+} from "./dashboard/src/helpers/scheduler.js";
 import {
   getCurrentIndexGroupPost,
+  getIsFixStealAllFocusInStorage,
   getIsStealFocusInStorage,
   getIsStopTaskInStorage,
   getRandomIndexGroupChecked,
@@ -45,7 +52,6 @@ import {
 import {
   clearAndCreateSchedulerAlarm,
   clearSchedulerAuto,
-  createSchedulerAuto,
   getSchedulerService,
 } from "./dashboard/src/services/scheduler-service.js";
 import { DB_openInTab } from "./dashboard/src/utils/api-helper.js";
@@ -53,9 +59,11 @@ import {
   BG_deleteValue,
   BG_getValue,
   BG_setValue,
+  getCountPost,
   getProgressTool,
   getTask,
   saveTask,
+  setCountPost,
   setCurrentPostLength,
   setProgressTool,
   setStatusTask,
@@ -65,7 +73,7 @@ import {
   logActions,
   logError,
   now,
-  sleep,
+  random,
 } from "./utils/utils.js";
 
 //KEY TEST, DELETE AFTER FINISH
@@ -76,9 +84,7 @@ const KEY_OPEN_DASHBOARD = "OPEN_DASHBOARD";
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === KEY_SCHEDULER_ALARMS) {
     try {
-      BG_setValue(KEY_IS_SPAMMED, false);
       const tabs = await chrome.tabs.query({});
-      const isProgress = await getProgressTool();
 
       let isOpenningDashboardTab = false;
       for (const tab of tabs) {
@@ -88,6 +94,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
           break;
         }
       }
+      const isProgress = await getProgressTool();
       if (!isOpenningDashboardTab || isProgress) {
         if (isProgress) {
           setProgressTool(false);
@@ -95,7 +102,46 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         clearSchedulerAuto();
         return;
       }
-      logActions("Its time to post");
+      logActions("Its time to post, random post this time or not");
+
+      addLog({
+        vi: "Đã đến giờ đăng bài trong lịch trình, đang tính toán có nên đăng bài đợt này không",
+        en: "It's time to post in the schedule, calculating whether to post this batch or not",
+      });
+
+      function sleepThisTime() {
+        addLog({
+          vi: "Đã quyết định nghỉ đợt đăng bài lần này, chuyển sang đợt tiếp theo",
+          en: "Decided to skip this batch, will start next batch",
+        });
+        setProgressTool(false);
+        setCountPost(0);
+        clearAndCreateSchedulerAlarm();
+      }
+
+      const countPost = await getCountPost();
+      if (countPost > 7) {
+        sleepThisTime();
+        return;
+      }
+      if (countPost >= 5 && countPost <= 7) {
+        //increase percent to sleep this time
+        const rd = random(0, 10);
+        if (rd >= 3) {
+          sleepThisTime();
+          return;
+        }
+      }
+      //random this time to post or not with 10% chance
+      const rand = random(0, 10);
+      if (rand >= 10 && countPost >= 2) {
+        sleepThisTime();
+        return;
+      }
+      addLog({
+        vi: "Quyết định bắt đầu đợt đăng bài",
+        en: "Decided to start this batch",
+      });
       await automationContinue();
       const isShuffle =
         (await BG_getValue(KEY_IS_SHUFFLE_SCHEDULER_TIME)) || false;
@@ -113,15 +159,29 @@ chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
   // console.log("Tab remove id: " + tabId);
   const tabIdGetListGroup = await BG_getValue(KEY_TAB.TAB_GET_LIST_GROUP_ID);
   if (tabId === tabIdGetListGroup) {
-    BG_setValue(KEY_IS_SCROLL_DETECT_LIST_GROUP, false);
-    BG_deleteValue(KEY_TAB.TAB_GET_LIST_GROUP_ID);
+    const isScroll = await BG_getValue(KEY_IS_SCROLL_DETECT_LIST_GROUP);
+    if (isScroll) {
+      BG_setValue(KEY_IS_SCROLL_DETECT_LIST_GROUP, false);
+      BG_deleteValue(KEY_TAB.TAB_GET_LIST_GROUP_ID);
+      addLog({
+        vi: "Đã dừng lấy danh sách nhóm do tab bị đóng thủ công",
+        en: "Stopped getting group list because tab was closed manually",
+      });
+    }
   }
 
   //check when posting was be close
   const tabIdPost = await BG_getValue(KEY_TAB.LAST_POST_TAB_OPEN_ID);
   if (tabId === tabIdPost) {
-    setProgressTool(false);
-    BG_deleteValue(KEY_TAB.LAST_POST_TAB_OPEN_ID);
+    const isProgress = await getProgressTool();
+    if (isProgress) {
+      setProgressTool(false);
+      BG_deleteValue(KEY_TAB.LAST_POST_TAB_OPEN_ID);
+      addLog({
+        vi: "Đã dừng đăng bài đợt này do tab bị đóng thủ công",
+        en: "Stopped posting this batch because tab was closed manually",
+      });
+    }
   }
 
   const tabIdDashboard = await BG_getValue(KEY_TAB.TAB_DASHBOARD_ID);
@@ -142,9 +202,15 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
     //check get list groups tab was be reload
     if (currentId === tabIdGetListGroup) {
       if (details.transitionType === "reload") {
-        console.log("[FB Auto Post] Tab get list groups reloaded");
-        BG_setValue(KEY_IS_SCROLL_DETECT_LIST_GROUP, false);
-        BG_deleteValue(KEY_TAB.TAB_GET_LIST_GROUP_ID);
+        const isScroll = await BG_getValue(KEY_IS_SCROLL_DETECT_LIST_GROUP);
+        if (isScroll) {
+          BG_setValue(KEY_IS_SCROLL_DETECT_LIST_GROUP, false);
+          BG_deleteValue(KEY_TAB.TAB_GET_LIST_GROUP_ID);
+          addLog({
+            vi: "Đã dừng lấy danh sách nhóm do tab bị load lại thủ công",
+            en: "Stopped getting group list because tab was reloaded manually",
+          });
+        }
       }
     }
 
@@ -153,6 +219,10 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
       if (details.transitionType === "reload") {
         setProgressTool(false);
         BG_deleteValue(KEY_TAB.LAST_POST_TAB_OPEN_ID);
+        addLog({
+          vi: "Đã dừng đăng bài đợt này do tab bị load lại thủ công",
+          en: "Stopped posting this batch because tab was reloaded manually",
+        });
       }
     }
 
@@ -249,6 +319,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       case KEY_UPDATE_IS_SPAMMED:
         handleUpdateIsSpammed(msg.data.isSpammed);
         break;
+      case KEY_ADD_LOG:
+        handleAddLog(msg.data);
+        break;
     }
   } catch (error) {
     logError("Error at background: ", error);
@@ -279,14 +352,30 @@ async function nextGroupPost() {
 
       if (isPostedAll) {
         logActions("[Background] All group have been posted");
+        addLog({
+          vi: "Tất cả nhóm đã được đăng, đặt lại tất cả nhóm thành đang chờ",
+          en: "All group have been posted, reset all group to pending",
+        });
         await resetPostedGroupAndSave();
       } else {
+        const countPost = await getCountPost();
+        setCountPost(countPost + 1);
         logActions("[Background] Max group per time have been posted");
+        addLog({
+          vi: "Số lượng nhóm đã đăng đạt giới hạn, chuyển sang đợt tiếp theo",
+          en: "Max group per time have been posted, switch to next batch",
+        });
       }
 
       const scheduler = await getSchedulerService();
       if (scheduler.isScheduler) {
         clearAndCreateSchedulerAlarm();
+        const nextTime = await getNextTimePost();
+        const date = new Date(nextTime);
+        addLog({
+          vi: `Thời gian đăng bài tiếp theo trong bộ lịch: ${date.toLocaleString()}`,
+          en: `Next time for next post in the scheduler: ${date.toLocaleString()}`,
+        });
       }
       return;
     }
@@ -322,6 +411,7 @@ async function nextGroupPost() {
       let id = await getRandomIndexGroupChecked();
       if (!id) {
         logActions("All group posted");
+
         await resetPostedGroupAndSave();
         id = await getRandomIndexGroupChecked();
       }
@@ -338,7 +428,13 @@ async function nextGroupPost() {
       logActions("open next task: ", nextTaskFind);
       saveTask({ task: nextTaskFind, time: now() });
       const isFixStealFocus = await getIsStealFocusInStorage();
-      if (isFixStealFocus) {
+      const isFixStealAllFocus = await getIsFixStealAllFocusInStorage();
+      if (isFixStealAllFocus) {
+        const tabId = await DB_openInTab(nextTaskFind.id_href, {
+          active: false,
+        });
+        await BG_setValue(KEY_TAB.LAST_POST_TAB_OPEN_ID, tabId);
+      } else if (isFixStealFocus) {
         const tabId = await DB_openInTab(nextTaskFind.id_href, {
           active: false,
         });
@@ -380,6 +476,7 @@ async function handleCanPostThisTab(sender, sendResponse) {
           task,
         },
       });
+
       return true;
     }
     sendResponse({
@@ -419,7 +516,9 @@ async function handleGetListGroups() {
 }
 
 async function handleOpenDashboard() {
-  const urlDashboard = chrome.runtime.getURL("dashboard/dashboard.html");
+  const urlDashboard = chrome.runtime.getURL(
+    "dashboard/dashboard.html#nav=dashboard",
+  );
   const tabs = await chrome.tabs.query({ url: urlDashboard });
   if (tabs && tabs?.length > 0) {
     chrome.tabs.update(tabs[0].id, { active: true });
@@ -463,21 +562,26 @@ async function handleGetCurrentDataGroupSavedNeedPost(sendResponse) {
 
 async function handleUpdateIsSpammed(isSpammed) {
   try {
-    BG_setValue(KEY_IS_SPAMMED, isSpammed);
     if (isSpammed) {
+      await addLog({
+        vi: "Tài khoản bị spam, tạm dừng tool",
+        en: "Account is spammed, stop task",
+      });
       setProgressTool(false);
-      logActions("User is spammed, stop task");
-      const scheduler = await getSchedulerService();
-      if (scheduler.isScheduler) {
-        clearSchedulerAuto();
-        const nextTime = now() + 1000 * 60 * 60 * 24 * 2; // 2 day
-        setTimeout(() => {
-          createSchedulerAuto(nextTime);
-        }, 10000);
-      }
+      const nextTime = now() + 1000 * 60 * 60 * 24 * 2; // 2 day
+      BG_setValue(KEY_NEXT_TIME_POST_WHEN_SPAMMED, nextTime);
+      BG_setValue(KEY_IS_SPAMMED, isSpammed);
     }
   } catch (error) {
     logError("Error update is spammed: ", error);
+  }
+}
+
+async function handleAddLog(message) {
+  try {
+    addLog({ vi: message?.vi || "", en: message?.en || "" });
+  } catch (error) {
+    logError("Error add log: ", error);
   }
 }
 

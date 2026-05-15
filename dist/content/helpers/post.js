@@ -5,6 +5,7 @@ import {
   STATUS_TASK,
 } from "../../contants/contants.js";
 import {
+  KEY_ADD_LOG,
   KEY_GET_CURRENT_DATA_GROUP_SAVED_NEED_POST,
   KEY_UPDATE_STATUS_TASK,
 } from "../../contants/constant-extention.js";
@@ -63,6 +64,10 @@ async function pasteContent(content) {
       div.dispatchEvent(pasteEvent);
     }
   } catch (e) {
+    sendMessage(KEY_ADD_LOG, {
+      vi: `Lỗi khi dán nội dung vào ô nhập`,
+      en: `Error when pasting content into the input box`,
+    });
     throw new Error("Error at paste content: " + e);
   }
 }
@@ -105,6 +110,10 @@ async function fillFile(files) {
       input.dispatchEvent(new Event("input", { bubbles: true }));
     }
   } catch (e) {
+    sendMessage(KEY_ADD_LOG, {
+      vi: `Lỗi khi tải tệp lên ô nhập`,
+      en: `Error when uploading files to the input box`,
+    });
     throw new Error("Error at fill file: " + e);
   }
 }
@@ -175,13 +184,25 @@ async function postHelper(task) {
       await sleep(500);
       if (!getIsExistDialog()) {
         logError("Dialog not found, try again first time");
+
+        sendMessage(KEY_ADD_LOG, {
+          vi: "Ô nhập nội dung không tìm thấy, đang thử lại lần 1",
+          en: "Content input box not found, try again first time",
+        });
+
         const node = await findDivToPost();
         if (node) {
           node.click();
         }
-        await sleep(500);
+        await sleep(random(1, 4) * 1000);
         if (!getIsExistDialog()) {
           logError("Dialog not found, try again second time");
+
+          sendMessage(KEY_ADD_LOG, {
+            vi: "Ô nhập nội dung không tìm thấy, đang thử lại lần 2",
+            en: "Content input box not found, try again second time",
+          });
+
           const node2 = await findDivToPost();
           if (node2) {
             const evt = new MouseEvent("click", {
@@ -217,18 +238,35 @@ async function postHelper(task) {
           }
         } else {
           logError("Dialog not found, can not post this group");
+
+          sendMessage(KEY_ADD_LOG, {
+            vi: "Ô nhập nội dung không tìm thấy, không thể đăng bài trong nhóm này",
+            en: "Content input box not found, can not post this group",
+          });
         }
       }
 
       //complete task
       task.status = STATUS_TASK.DONE;
       sendMessage(KEY_UPDATE_STATUS_TASK, { status: task.status });
+      sendMessage(KEY_ADD_LOG, {
+        vi: "Đã thực hiện xong việc đăng bài trong nhóm, chuyển sang nhóm tiếp theo.",
+        en: "Done posting in this group, switch to next group.",
+      });
     } else {
       logError("Cant not post in this group");
+      sendMessage(KEY_ADD_LOG, {
+        vi: `Không thể đăng bài trong nhóm này vì không tìm được thẻ click để tạo ô input`,
+        en: `Can not post in this group because not found button to create input tag`,
+      });
       task.status = STATUS_TASK.ERROR;
       sendMessage(KEY_UPDATE_STATUS_TASK, { status: task.status });
     }
   } catch (error) {
+    sendMessage(KEY_ADD_LOG, {
+      vi: `Lỗi khi đăng bài trong nhóm này ${error}`,
+      en: `Error when posting in this group ${error}`,
+    });
     task.status = STATUS_TASK.ERROR;
     sendMessage(KEY_UPDATE_STATUS_TASK, { status: task.status });
     logError("Error at postHelper: " + error);

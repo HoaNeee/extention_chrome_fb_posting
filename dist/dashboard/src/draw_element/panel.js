@@ -22,6 +22,7 @@ import {
   KEY_LANGUAGE,
   KEY_IS_SHUFFLE_SCHEDULER_TIME,
   KEY_IS_SPAMMED,
+  KEY_IS_FIX_STEAL_ALL_FOCUS,
 } from "../../../contants/contants.js";
 import {
   getCurrentGroupNeedPost,
@@ -90,15 +91,16 @@ import {
   getSchedulerService,
   setSchedulerService,
 } from "../services/scheduler-service.js";
+import { addLog } from "./panel-log.js";
 
 function drawInnerRoot() {
   const innerRoot = document.createElement("div");
   innerRoot.classList.add("tm_inner-root");
+  innerRoot.setAttribute("data-tab-value", "dashboard");
 
   const dashboardHTML = `
       <div style="overflow: auto; padding-right: 18px;" class="${prefix}div-dashboard">
         <h2 style="margin-bottom: 8px;">${getTextWithLanguage({ vi: "Bảng điều khiển", en: "Dashboard" })}</h2>
-        <div id="${prefix}data-saved-info" style="margin-bottom: 8px;"></div>
         <div style="display: flex; gap: 8px; flex-wrap: wrap; flex-direction: column;">
             <div style="display: flex; gap: 4px;">
             <button button id="${prefix}btn-auto" style="width: 100%;">${getTextWithLanguage({ vi: "Tự động", en: "Auto New" })}</button>
@@ -109,23 +111,22 @@ function drawInnerRoot() {
               <button button id="${prefix}btn-continue-post" style="width: 100%;">${getTextWithLanguage({ vi: "Tiếp tục", en: "Continue" })}</button>
             </div>
             <div style="display: flex; gap: 4px;">
-            <button button id="${prefix}btn-reset-groups-need-post" style="width: 100%;">${getTextWithLanguage({ vi: "Đặt lại nhóm cần đăng", en: "Reset Groups Need Post" })}</button>
-              <button button id="${prefix}btn-test-auto" style="width: 100%;">${getTextWithLanguage({ vi: "Kiểm thử (dev)", en: "Test Auto" })}</button>
-            </div>
-            <div style="display: flex; gap: 4px;">
               <button button id="${prefix}btn-set-all-groups-to-pending" style="width: 100%;">${getTextWithLanguage({ vi: "Đặt tất cả nhóm thành đang chờ", en: "Set All Groups To Pending" })}</button>
-              <button button id="${prefix}btn-reset-groups" style="width: 100%;">${getTextWithLanguage({ vi: "Đặt lại tất cả nhóm", en: "Reset All Groups" })}</button>
+              <button button id="${prefix}btn-reset-groups-need-post" style="width: 100%;">${getTextWithLanguage({ vi: "Đặt lại nhóm cần đăng", en: "Reset Groups Need Post" })}</button>
             </div>
             <div style="display: flex; gap: 4px;">
-              <button button id="${prefix}btn-click" style="width: 100%;">${getTextWithLanguage({ vi: "Click", en: "Click" })}</button>
-              <button button id="${prefix}btn-reset" style="width: 100%;">${getTextWithLanguage({ vi: "Đặt lại tất cả", en: "Reset All" })}</button>
+              <button button id="${prefix}btn-reset-groups" style="width: 100%;">${getTextWithLanguage({ vi: "Đặt lại tất cả nhóm", en: "Reset All Groups" })}</button>
+              <button button id="${prefix}btn-reset-is-spammed" style="width: 100%;">${getTextWithLanguage({ vi: "Đặt lại trạng thái bị spam", en: "Reset is spammed" })}</button>
             </div>
+            <button button id="${prefix}btn-reset" style="width: 100%;">${getTextWithLanguage({ vi: "Đặt lại tất cả", en: "Reset All" })}</button>
+            <button button id="${prefix}btn-test-auto" style="width: 100%;">${getTextWithLanguage({ vi: "Kiểm thử (dev)", en: "Test Auto" })}</button>
+            <button button id="${prefix}btn-click" style="width: 100%;">${getTextWithLanguage({ vi: "Click", en: "Click" })}</button>
         </div>
       </div>
     `;
 
   const advancedSettingHTML = `
-    <div class="${prefix}advanced-setting" style="padding-left: 10px; overflow: auto; padding-right: 18px;">
+    <div class="${prefix}advanced-setting" style="padding-left: 10px; overflow: auto; padding-right: 18px; border-left: 1px solid var(--tm-border-color);">
         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
           <h2 style="">${getTextWithLanguage({ vi: "Cài đặt nâng cao", en: "Advanced Setting" })}</h2>
         </div>
@@ -159,12 +160,20 @@ function drawInnerRoot() {
             <label for="${prefix}checkbox-is-test" style="user-select: none;">${getTextWithLanguage({ vi: "Đang kiểm thử", en: "Auto is testing" })}</label>
           </div>
           <div class="${prefix}field-container field-checkbox">
+            <input type="checkbox" id="${prefix}checkbox-is-spammed">
+            <label for="${prefix}checkbox-is-spammed" style="user-select: none;">${getTextWithLanguage({ vi: "Bị spam", en: "Is spammed" })}</label>
+          </div>
+          <div class="${prefix}field-container field-checkbox">
             <input type="checkbox" id="${prefix}checkbox-is-fix-steal-focus">
             <label for="${prefix}checkbox-is-fix-steal-focus" style="user-select: none;">${getTextWithLanguage({ vi: "Tránh nhảy tab", en: "Fix steal focus" })}</label>
           </div>
           <div class="${prefix}field-container field-checkbox">
+            <input type="checkbox" id="${prefix}checkbox-is-fix-steal-all-focus">
+            <label for="${prefix}checkbox-is-fix-steal-all-focus" style="user-select: none;">${getTextWithLanguage({ vi: "Tránh nhảy tab hoàn toàn (Thử nghiệm)", en: "Fix steal all focus (Beta)" })}</label>
+          </div>
+          <div class="${prefix}field-container field-checkbox">
             <input type="checkbox" id="${prefix}checkbox-is-shuffle-scheduler-time">
-            <label for="${prefix}checkbox-is-shuffle-scheduler-time" style="user-select: none;">${getTextWithLanguage({ vi: "Tự động trộn lịch", en: "Shuffle scheduler time" })}</label>
+            <label for="${prefix}checkbox-is-shuffle-scheduler-time" style="user-select: none;">${getTextWithLanguage({ vi: "Tự động trộn lịch (Thử nghiệm)", en: "Shuffle scheduler time (Beta)" })}</label>
           </div>
           <div class="${prefix}field-container field-checkbox">
             <input type="checkbox" id="${prefix}checkbox-is-scheduler">
@@ -172,7 +181,7 @@ function drawInnerRoot() {
           </div>
           <div id="${prefix}div-scheduler-options" style="padding-left: 16px; max-width: 250px; min-width: 200px;">
             <div style="margin-bottom: 4px;">
-              <button class="not-style" style="padding: 4px; font-size: 10px" id="${prefix}btn-view-scheduler">${getTextWithLanguage({ vi: "Xem lịch", en: "View scheduler" })}</button>
+              <button class="not-style" style="padding: 6px; font-size: 12px" id="${prefix}btn-view-scheduler">${getTextWithLanguage({ vi: "Xem lịch", en: "View scheduler" })}</button>
             </div>
             <div id="${prefix}div-scheduler-setting" style="margin-top: 4px;">
               <label for="${prefix}select-scheduler-type" style="margin-bottom: 4px; display: inline-block;">${getTextWithLanguage({ vi: "Chọn loại lịch", en: "Select scheduler type" })}:</label>
@@ -317,6 +326,8 @@ async function createPanel(doc = document.body) {
       async function onDeleteGroup(id) {
         try {
           const dataSaved = (await getDataSavedInStorage()) || [];
+          const groupTitle =
+            dataSaved.find((item) => item.id === id)?.name || "";
           const newDataSaved = dataSaved.filter((item) => item.id !== id);
 
           const indexsChecked =
@@ -332,7 +343,16 @@ async function createPanel(doc = document.body) {
             message: "Delete group successfully",
             type: "success",
           });
+
+          addLog({
+            vi: `Bạn vừa xóa dữ liệu nhóm: ${groupTitle}`,
+            en: `You just deleted data of group: ${groupTitle}`,
+          });
         } catch (error) {
+          addLog({
+            vi: `Không thể xóa dữ liệu nhóm`,
+            en: `Cannot delete data of group`,
+          });
           showNotify({
             message: "Error occurred while deleting group",
             type: "error",
@@ -560,6 +580,10 @@ async function createPanel(doc = document.body) {
             type: "success",
           });
           await sleep(500);
+          addLog({
+            vi: "Đặt lại tất cả dữ liệu",
+            en: "Reset all data",
+          });
           location.reload();
         },
         onCancel: () => {
@@ -610,6 +634,9 @@ async function createPanel(doc = document.body) {
               message: "Save custom every hours successfully",
               type: "success",
             });
+            if (scheduler.isScheduler) {
+              clearAndCreateSchedulerAlarm();
+            }
           }
         } catch (error) {
           showNotify({
@@ -647,6 +674,9 @@ async function createPanel(doc = document.body) {
               message: "Save custom every minutes successfully",
               type: "success",
             });
+            if (scheduler.isScheduler) {
+              clearAndCreateSchedulerAlarm();
+            }
           }
         } catch (error) {
           showNotify({
@@ -717,14 +747,22 @@ async function createPanel(doc = document.body) {
             return;
           }
           const dataStr = JSON.stringify(dataSaved);
+
           const blob = new Blob([dataStr], { type: "application/json" });
           const url = URL.createObjectURL(blob);
 
           const a = document.createElement("a");
           a.href = url;
-          a.download = `data_groups_${new Date().getTime()}.json`;
+
+          const timeNow = now();
+          const name = `data_groups_${timeNow}.json`;
+          a.download = name;
           a.click();
           URL.revokeObjectURL(url);
+          addLog({
+            vi: `Bạn vừa xuất ${dataSaved.length} nhóm vào file json ${name}`,
+            en: `You just exported ${dataSaved.length} groups to a JSON file ${name}`,
+          });
         } catch (error) {
           logError("Error exportGroupsEvent: ", error);
           showNotify({
@@ -761,6 +799,10 @@ async function createPanel(doc = document.body) {
                         type: "success",
                       });
                       await drawListGroups(newDataSaved);
+                      addLog({
+                        vi: `Bạn vừa thêm ${data.length} nhóm vào danh sách nhóm từ file`,
+                        en: `You just added ${data.length} groups to the list of groups from importing a file`,
+                      });
                     }
                     //import only one not array
                     else {
@@ -772,6 +814,10 @@ async function createPanel(doc = document.body) {
                         type: "success",
                       });
                       await drawListGroups(dataSaved);
+                      addLog({
+                        vi: `Bạn vừa thêm 1 nhóm vào danh sách nhóm từ file`,
+                        en: `You just added 1 group to the list of groups from importing a file`,
+                      });
                     }
                   }
                 } catch (err) {
@@ -779,6 +825,7 @@ async function createPanel(doc = document.body) {
                     message: "Invalid file format",
                     type: "error",
                   });
+                  logError("Error at importGroupsEvent: ", err);
                   return;
                 }
               };
@@ -827,6 +874,10 @@ async function createPanel(doc = document.body) {
             });
             btnResetGroups.style.background = "";
             DB_setValue(KEY_COUNT_RESET_GROUPS, 0);
+            addLog({
+              vi: "Đặt lại tất cả nhóm",
+              en: "Reset all groups",
+            });
           } else {
             isConfirmingResetAllGroups = true;
             btnResetGroups.innerText = getTextWithLanguage({
@@ -873,6 +924,10 @@ async function createPanel(doc = document.body) {
             btnResetGroupNeedPost.style.background = "";
             DB_setValue(KEY_COUNT_RESET_GROUPS, 0);
             await updateDataSavedInfo();
+            addLog({
+              vi: "Đặt lại nhóm cần đăng",
+              en: "Reset groups need post",
+            });
           } else {
             isConfirmingResetGroupsNeedPost = true;
             btnResetGroupNeedPost.innerText = getTextWithLanguage({
@@ -917,6 +972,10 @@ async function createPanel(doc = document.body) {
             });
             btnSetAllGroupsToPending.style.background = "";
             DB_setValue(KEY_COUNT_RESET_GROUPS, 0);
+            addLog({
+              vi: "Đặt lại tất cả nhóm thành chờ",
+              en: "Set all groups to pending",
+            });
           } else {
             isConfirmingSetAllGroupsToPending = true;
             btnSetAllGroupsToPending.innerText = getTextWithLanguage({
@@ -986,8 +1045,11 @@ async function createPanel(doc = document.body) {
         btnAuto.addEventListener("click", async () => {
           //auto
           try {
-            DB_setValue(KEY_IS_SPAMMED, false);
             await automation();
+            addLog({
+              vi: "Bắt đầu đăng tự động",
+              en: "Start auto post",
+            });
           } catch (error) {
             setProgress(false);
             logError("Error at btnAuto click event: ", error);
@@ -999,19 +1061,35 @@ async function createPanel(doc = document.body) {
       if (btnClick) {
         btnClick.addEventListener("click", async () => {
           try {
-            const dataSavedDB = new DataSavedDB(KEY_DATA_POST_SAVED);
-            // dataSavedDB.saveDataPosts([
-            //   {
-            //     id: "1",
-            //     title: "Title 1",
-            //     contents: ["Content 1"],
-            //     files: [],
-            //   },
-            // ]);
-            const dataSaved = await dataSavedDB.getAllDataSaved();
-            console.log(dataSaved);
+            // chrome.tabs.query({}, function (tabs) {
+            //   tabs.forEach((tab) => {
+            //     chrome.tabs.reload(tab.id, {
+            //       bypassCache: true,
+            //     });
+            //   });
+            // });
+            // setInterval(() => {
+            //   addLog({
+            //     en: "test log 1",
+            //     vi: "test log 1 tieng viet",
+            //   });
+            // }, 1000);
           } catch (error) {
             logError("Error at btnClick click event: ", error);
+          }
+        });
+      }
+
+      const btnResetIsSpammed = document.querySelector(
+        `#tm_btn-reset-is-spammed`,
+      );
+      if (btnResetIsSpammed) {
+        btnResetIsSpammed.addEventListener("click", async () => {
+          try {
+            DB_setValue(KEY_IS_SPAMMED, false);
+            updateDataSavedInfo();
+          } catch (error) {
+            logError("Error at btnResetIsSpammed click event: ", error);
           }
         });
       }
@@ -1338,6 +1416,17 @@ async function createPanel(doc = document.body) {
           });
         }
 
+        const checkboxIsFixStealAllFocus = root.querySelector(
+          "#tm_checkbox-is-fix-steal-all-focus",
+        );
+        if (checkboxIsFixStealAllFocus) {
+          checkboxIsFixStealAllFocus.addEventListener("change", (e) => {
+            const val = e.target.checked;
+            DB_setValue(KEY_IS_FIX_STEAL_ALL_FOCUS, val);
+            updateDataSavedInfo();
+          });
+        }
+
         const checboxIsShuffleSchedulerTime = root.querySelector(
           `#${prefix}checkbox-is-shuffle-scheduler-time`,
         );
@@ -1349,16 +1438,41 @@ async function createPanel(doc = document.body) {
           });
         }
 
+        const checkboxIsSpammed = root.querySelector(
+          `#${prefix}checkbox-is-spammed`,
+        );
+        if (checkboxIsSpammed) {
+          checkboxIsSpammed.addEventListener("change", (e) => {
+            const val = e.target.checked;
+            DB_setValue(KEY_IS_SPAMMED, val);
+            updateDataSavedInfo();
+          });
+        }
+
         const checkboxIsScheduler = root.querySelector(
           `#tm_checkbox-is-scheduler`,
         );
         if (checkboxIsScheduler) {
           checkboxIsScheduler.addEventListener("change", async (e) => {
-            const val = e.target.checked;
-            scheduler.isScheduler = val;
-            setSchedulerService({ ...scheduler, time: now() });
-            if (!val) {
-              clearSchedulerAuto();
+            try {
+              const val = e.target.checked;
+              scheduler.isScheduler = val;
+              setSchedulerService({ ...scheduler, time: now() });
+              if (!val) {
+                clearSchedulerAuto();
+                addLog({
+                  vi: "Tắt lên lịch đăng tự động",
+                  en: "Turn off scheduler",
+                });
+              } else {
+                addLog({
+                  vi: `Tạo bộ lập lịch tự động thành công`,
+                  en: `Create scheduler auto success`,
+                });
+                clearAndCreateSchedulerAlarm();
+              }
+            } catch (error) {
+              logError("Error at checkboxIsScheduler: ", error);
             }
           });
         }

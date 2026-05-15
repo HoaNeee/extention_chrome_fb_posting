@@ -1,6 +1,7 @@
 import { KEY_CURRENT_WINDOW_ID } from "../contants/constant-extention.js";
-import { initLanguage, logError } from "../utils/utils.js";
+import { getTextWithLanguage, initLanguage, logError } from "../utils/utils.js";
 import { dialogContainer } from "./src/draw_element/dialog.js";
+import { addLog, createPanelLog } from "./src/draw_element/panel-log.js";
 import { createPanel } from "./src/draw_element/panel.js";
 import {
   disabledElement,
@@ -23,12 +24,17 @@ async function main() {
 
     dialogContainer({ anchorElem: document.body });
 
+    const divTab = drawTab();
+
+    document.body.insertBefore(divTab, mainElement);
+
     const root = document.querySelector(`#tm_root`);
     if (root) {
       root.style.display = "none";
       root.style.pointerEvents = "none";
     }
     createPanel(mainElement);
+    createPanelLog(mainElement);
     await initialData(mainElement);
 
     const { setIsProcessing } = getAllFieldsSetting();
@@ -51,11 +57,90 @@ async function main() {
       }
     });
 
+    const hash = new URLSearchParams(location.hash);
+    const tabValue = hash.get("#nav");
+
+    if (tabValue) {
+      changeTab({
+        tabValue,
+        displayValue: tabValue === "dashboard" ? "grid" : "block",
+      });
+    } else {
+      changeTab({ tabValue: "dashboard", displayValue: "grid" });
+    }
+
     root.style.display = "block";
     root.style.pointerEvents = "auto";
+
+    const tabs = document.querySelector(".tabs-list");
+    if (tabs) {
+      const tabItems = tabs.querySelectorAll(".tab-item");
+
+      tabItems.forEach((tabItem) => {
+        tabItem.addEventListener("click", () => {
+          const tabValue = tabItem.getAttribute("data-tab-value");
+          location.hash = `nav=${tabValue}`;
+
+          changeTab({
+            tabValue,
+            displayValue: tabValue === "dashboard" ? "grid" : "block",
+          });
+        });
+      });
+    }
+
+    window.addEventListener("online", () => {
+      addLog({
+        vi: "Đã kết nối với internet",
+        en: "Connected to internet",
+      });
+    });
+
+    window.addEventListener("offline", () => {
+      addLog({
+        vi: "Đã mất kết nối với internet",
+        en: "Disconnected from internet",
+      });
+    });
   } catch (error) {
     logError("Error at dashboard main: ", error);
   }
+}
+
+function changeTab({ tabValue = "dashboard", displayValue = "block" } = {}) {
+  const root = document.querySelector("#tm_root");
+  const allTabs = root.querySelectorAll("[data-tab-value]");
+  const allTabItems = document.querySelectorAll(".tab-item");
+
+  allTabItems.forEach((tabItem) => {
+    if (tabItem.getAttribute("data-tab-value") === tabValue) {
+      tabItem.classList.add("tab-item-active");
+    } else {
+      tabItem.classList.remove("tab-item-active");
+    }
+  });
+
+  allTabs.forEach((tab) => {
+    if (tab.getAttribute("data-tab-value") === tabValue) {
+      tab.style.display = displayValue;
+      tab.style.pointerEvents = "auto";
+    } else {
+      tab.style.display = "none";
+      tab.style.pointerEvents = "none";
+    }
+  });
+}
+
+function drawTab() {
+  const div = document.createElement("div");
+  div.className = "tabs";
+  div.innerHTML = `
+    <ul class="tabs-list">
+      <li class="tab-item tab-item-active" data-tab-value="dashboard">${getTextWithLanguage({ vi: "Bảng điểu khiển", en: "Dashboard" })}</li>
+      <li class="tab-item" data-tab-value="logs">${getTextWithLanguage({ vi: "Nhật ký", en: "Logs" })}</li>
+    </ul>
+  `;
+  return div;
 }
 
 main();

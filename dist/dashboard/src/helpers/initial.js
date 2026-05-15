@@ -7,6 +7,10 @@ import {
   disabledElement,
   enabledElement,
   getAllFieldsSetting,
+  hideElement,
+  hideField,
+  showElement,
+  showField,
 } from "./elementDom.js";
 import {
   KEY_GROUPS_POSTED,
@@ -22,6 +26,9 @@ import {
   KEY_IS_DEVELOPER_MODE,
   SCHEDULER_TYPE,
   KEY_IS_SHUFFLE_SCHEDULER_TIME,
+  KEY_IS_SPAMMED,
+  KEY_NEXT_TIME_POST_WHEN_SPAMMED,
+  KEY_IS_FIX_STEAL_ALL_FOCUS,
 } from "../../../contants/contants.js";
 import { updateDataSavedInfo } from "../draw_element/dataSavedInfo.js";
 import {
@@ -35,10 +42,12 @@ import { getDataSavedInStorage } from "../services/dataSavedService.js";
 import {
   clearAndCreateSchedulerAlarm,
   clearSchedulerAuto,
+  createSchedulerAuto,
   getSchedulerService,
   setSchedulerService,
 } from "../services/scheduler-service.js";
-import { shuffleTimes } from "./scheduler.js";
+import { getNextTimePostWhenSpammed, shuffleTimes } from "./scheduler.js";
+import { initHistoryLogs } from "../draw_element/panel-log.js";
 
 async function initialData({ anchorElement = document.body }) {
   try {
@@ -51,6 +60,8 @@ async function initialData({ anchorElement = document.body }) {
         setIsFixStealFocus,
         setStrictlyMatchTitleGroup,
         setIsShuffleSchedulerTime,
+        setIsSpammed,
+        setIsFixStealAllFocus,
       } = getAllFieldsSetting();
 
       //get max group
@@ -71,6 +82,13 @@ async function initialData({ anchorElement = document.body }) {
       const isFixStealFocus =
         (await DB_getValue(KEY_IS_FIX_STEAL_FOCUS)) || false;
       setIsFixStealFocus(isFixStealFocus);
+
+      const isFixStealAllFocus =
+        (await DB_getValue(KEY_IS_FIX_STEAL_ALL_FOCUS)) || false;
+      setIsFixStealAllFocus(isFixStealAllFocus);
+
+      const isSpammed = (await DB_getValue(KEY_IS_SPAMMED)) || false;
+      setIsSpammed(isSpammed);
 
       const isShuffleSchedulerTime =
         (await DB_getValue(KEY_IS_SHUFFLE_SCHEDULER_TIME)) || false;
@@ -197,27 +215,32 @@ async function initialData({ anchorElement = document.body }) {
 
     const isDevMode = await DB_getValue(KEY_IS_DEVELOPER_MODE);
     if (isDevMode) {
-      enabledElement({ selector: "#tm_btn-test-auto" });
-      enabledElement({
+      showElement("#tm_btn-test-auto");
+      showField({
         selector: "#tm_checkbox-is-test",
-        isField: true,
-        fieldSelector: "#tm_root .tm_field-container",
+        fieldSelector: ".tm_field-container",
       });
-      enabledElement({ selector: "#tm_btn-click" });
+      showElement("#tm_btn-click");
+      showField({
+        selector: "#tm_checkbox-is-spammed",
+        fieldSelector: ".tm_field-container",
+      });
     } else {
-      disabledElement({ selector: "#tm_btn-test-auto" });
-      disabledElement({
+      hideElement("#tm_btn-test-auto");
+      hideField({
         selector: "#tm_checkbox-is-test",
-        isField: true,
-        fieldSelector: "#tm_root .tm_field-container",
+        fieldSelector: ".tm_field-container",
       });
-      disabledElement({ selector: "#tm_btn-click" });
+      hideElement("#tm_btn-click");
+      hideField({
+        selector: "#tm_checkbox-is-spammed",
+        fieldSelector: ".tm_field-container",
+      });
     }
-
     await updateDataSavedInfo();
+    await initHistoryLogs();
   } catch (error) {
     logError("Error initialData: " + error);
-    throw new Error("Error initialData: " + error);
   }
 }
 

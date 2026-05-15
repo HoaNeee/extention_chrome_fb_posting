@@ -46,6 +46,7 @@ const KEY_INDEXS_GROUP_CHECKED = "group_checked_indexs";
 const KEY_IS_SCROLL_DETECT_LIST_GROUP = "is_scroll_detect_list_group";
 
 const KEY_IS_FIX_STEAL_FOCUS = "is_fix_steal_focus";
+const KEY_IS_FIX_STEAL_ALL_FOCUS = "is_fix_steal_all_focus";
 
 const KEY_IS_SHUFFLE_SCHEDULER_TIME = "is_shuffle_scheduler_time";
 
@@ -56,7 +57,15 @@ const KEY_CAN_POST_THIS_TAB = "can_post_this_tab";
 const KEY_IS_DARK_THEME = "is_dark_theme";
 const KEY_LANGUAGE = "language";
 
+const KEY_NEXT_TIME_POST_WHEN_SPAMMED = "next_time_post_when_spammed";
+
+const KEY_COUNT_POST = "count_post";
+
 const KEY_MY_SIGNATURE = "my_signature";
+
+const APP_NAME = "FB Tools Helper";
+
+const KEY_HISTORY_LOGS = "history_logs";
 
 const KEY_TAB = {
   LAST_TAB_OPEN_ID: "last_tab_open_id",
@@ -212,4 +221,9 @@ export {
   KEY_CAN_POST_THIS_TAB,
   KEY_IS_SHUFFLE_SCHEDULER_TIME,
   KEY_IS_SPAMMED,
+  KEY_NEXT_TIME_POST_WHEN_SPAMMED,
+  KEY_IS_FIX_STEAL_ALL_FOCUS,
+  KEY_COUNT_POST,
+  APP_NAME,
+  KEY_HISTORY_LOGS,
 };

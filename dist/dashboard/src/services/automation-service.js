@@ -11,6 +11,7 @@ import { showNotify } from "../draw_element/notify.js";
 import { logActions, logError, now, sleep } from "../../../utils/utils.js";
 import { getGroupsMatch } from "../helpers/group.js";
 import {
+  getIsFixStealAllFocusInStorage,
   getIsStealFocusInStorage,
   getIsStopTaskInStorage,
   getRandomIndexGroupChecked,
@@ -28,6 +29,7 @@ import {
 } from "./groupService.js";
 import { getDataGroupsSavedNeedPost } from "./dataSavedService.js";
 import { setCurrentPostLength } from "../../../utils/bgr-storage.js";
+import { addLog } from "../draw_element/panel-log.js";
 
 async function autoWithFirstTask() {
   //run new task
@@ -71,6 +73,11 @@ async function autoWithFirstTask() {
         return;
       }
 
+      addLog({
+        vi: "Nhóm cần đăng đợt này: " + need.name,
+        en: "Groups need to post this batch: " + need.name,
+      });
+
       //first task
       const task = groups.find(
         (gr) => gr.status === STATUS_TASK.PENDING && !set.has(gr.id_href),
@@ -84,8 +91,14 @@ async function autoWithFirstTask() {
         DB_setValue(KEY_POST, { task, time: now() });
 
         const isFixStealFocus = await getIsStealFocusInStorage();
-
-        if (isFixStealFocus) {
+        const isFixStealAllFocus = await getIsFixStealAllFocusInStorage();
+        if (isFixStealAllFocus) {
+          const tabId = await DB_openInTab(task.id_href, {
+            active: false,
+            insert: true,
+          });
+          DB_setValue(KEY_TAB.LAST_POST_TAB_OPEN_ID, tabId);
+        } else if (isFixStealFocus) {
           const tabId = await DB_openInTab(task.id_href, {
             active: false,
             insert: true,
@@ -192,6 +205,7 @@ async function automation() {
     setProgress(false);
   }
 }
+
 async function automationTest() {
   try {
     setAllGroupPostedsInStorage([]);

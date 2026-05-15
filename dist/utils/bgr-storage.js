@@ -1,9 +1,11 @@
 import {
+  KEY_COUNT_POST,
   KEY_IS_IN_PROGRESS,
   KEY_POST,
   KEY_POST_LENGTH,
   STATUS_TASK,
 } from "../contants/contants.js";
+import { addLog } from "../dashboard/src/draw_element/panel-log.js";
 import {
   getAllGroupPostedsInStorage,
   setAllGroupPostedsInStorage,
@@ -102,6 +104,22 @@ async function setCurrentPostLength(length) {
   await BG_setValue(KEY_POST_LENGTH, length);
 }
 
+/**
+ *
+ * @returns {Promise<number>} Count post
+ */
+async function getCountPost() {
+  return (await BG_getValue(KEY_COUNT_POST)) || 0;
+}
+
+/**
+ * Set count post
+ * @param {number} count - Count post
+ */
+async function setCountPost(count) {
+  await BG_setValue(KEY_COUNT_POST, count);
+}
+
 export {
   BG_setValue,
   BG_getValue,
@@ -113,4 +131,6 @@ export {
   getCurrentPostLength,
   setCurrentPostLength,
   saveTask,
+  getCountPost,
+  setCountPost,
 };

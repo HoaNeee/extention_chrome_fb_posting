@@ -1,9 +1,11 @@
 import { KEY_SCHEDULER_ALARMS } from "../../../contants/constant-extention.js";
-import { KEY_SCHEDULER } from "../../../contants/contants.js";
-import { now, logActions, logError, sleep } from "../../../utils/utils.js";
+import { KEY_IS_SPAMMED, KEY_SCHEDULER } from "../../../contants/contants.js";
+import { now, logActions, logError, random } from "../../../utils/utils.js";
+import { addLog } from "../draw_element/panel-log.js";
 import {
   createSchedulerDailyHours,
   getNextTimePost,
+  getNextTimePostWhenSpammed,
 } from "../helpers/scheduler.js";
 import { getProgress } from "../helpers/storage.js";
 import { DB_getValue, DB_setValue } from "../utils/api-helper.js";
@@ -12,8 +14,20 @@ async function createSchedulerAuto(forceTime = 0) {
   try {
     const scheduler = await getSchedulerService();
     const isScheduler = scheduler?.isScheduler || false;
+    const randomMinutes = random(-2, 2) * 1000 * 60;
     if (isScheduler) {
-      const nextTime = forceTime || (await getNextTimePost());
+      let nextTime = 0;
+      if (forceTime) {
+        nextTime = forceTime;
+      } else {
+        const isSpammed = await DB_getValue(KEY_IS_SPAMMED);
+        if (isSpammed) {
+          nextTime = await getNextTimePostWhenSpammed();
+        } else {
+          nextTime = await getNextTimePost();
+        }
+      }
+      nextTime = nextTime + randomMinutes;
       chrome.alarms.create(KEY_SCHEDULER_ALARMS, {
         when: nextTime,
       });
@@ -24,6 +38,10 @@ async function createSchedulerAuto(forceTime = 0) {
     }
   } catch (error) {
     logError("Error createSchedulerAuto:", error);
+    addLog({
+      vi: "Lỗi khi tạo bộ lập lịch tự động",
+      en: "Error create scheduler auto",
+    });
   }
 }
 
@@ -104,20 +122,38 @@ async function getSchedulerService() {
   }
   return scheduler;
 }
+
 let timeoutId = null;
+
+/**
+ *  @description This function clear scheduler auto and create scheduler auto again,
+ * must user is not spammed and not in progress
+ * if user is spammed, set next time post when spammed
+ * else set next time post
+ */
 async function clearAndCreateSchedulerAlarm() {
   try {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
-    const isProgress = await getProgress();
+
+    const isProgress = (await getProgress()) || false;
     if (isProgress) {
-      clearSchedulerAuto();
+      logActions("is progress, skip create scheduler auto");
+      addLog({
+        vi: "Tiện ích đang trong quá trình xử lý, bỏ qua tạo bộ lập lịch tự động",
+        en: "Tool is processing, skip create scheduler auto",
+      });
       return;
     }
+
     clearSchedulerAuto();
+    const isSpammed = await DB_getValue(KEY_IS_SPAMMED);
+    const timeSpammed = await getNextTimePostWhenSpammed();
+    const time = await getNextTimePost();
+
     timeoutId = setTimeout(() => {
-      createSchedulerAuto();
+      createSchedulerAuto(isSpammed ? timeSpammed : time);
     }, 2000);
   } catch (error) {
     logError("Error clearAndCreateSchedulerAlarm:", error);

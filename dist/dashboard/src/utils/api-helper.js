@@ -14,7 +14,9 @@ import {
   KEY_UNREGISTER_MENU_COMMAND,
   KEY_XMLHTTP_REQUEST,
   KEY_XMLHTTP_REQUEST_RESPONSE,
+  URL_MATCH,
 } from "../../../contants/constant-extention.js";
+import { logError } from "../../../utils/utils.js";
 
 // ============================================================
 // STORAGE: DB_getValue, DB_setValue, DB_deleteValue, DB_listValues
@@ -227,31 +229,36 @@ function DB_notification(details) {
  * @example DB_openInTab('https://facebook.com/groups/mygroup', { active: true });
  */
 async function DB_openInTab(url, options) {
-  // chrome.tabs.create(
-  //   {
-  //     url: url,
-  //     active: options?.active,
-  //   },
-  //   function (tab) {
-  //     try {
-  //       const url = tab?.pendingUrl || tab.url;
-  //       const id = tab.id;
-  //       if (getIsCorrectPostURL(url)) {
-  //         DB_setValue(KEY_TAB.LAST_POST_TAB_OPEN_ID, id);
-  //       } else {
-  //         DB_setValue(KEY_TAB.LAST_TAB_OPEN_ID, id);
-  //       }
-  //       return id;
-  //     } catch (error) {
-  //       logError("Error at DB_openInTab: " + error);
-  //     }
-  //   },
-  // );
   const tab = await chrome.tabs.create({
     url: url,
     active: options?.active,
     windowId: options?.windowId || (await DB_getValue(KEY_CURRENT_WINDOW_ID)),
   });
+
+  //force close tab that is open this tool after 7 minutes
+  setTimeout(
+    () => {
+      try {
+        //check tab if exist
+        chrome.tabs.query({ url: URL_MATCH }, function (tabs) {
+          try {
+            if (tabs && tabs.length > 0) {
+              const find = tabs.find((t) => t.id === tab.id);
+              if (find) {
+                chrome.tabs.remove(tab.id);
+              }
+            }
+          } catch (error) {
+            logError("Error at DB_openInTab force close tab: " + error);
+          }
+        });
+      } catch (error) {
+        logError("Error at DB_openInTab force close tab: " + error);
+      }
+    },
+    1000 * 60 * 7,
+  );
+
   return tab.id;
 }
 

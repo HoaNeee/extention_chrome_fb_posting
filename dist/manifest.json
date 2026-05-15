@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "FB Tools (New Version)",
+  "name": "FB Tools Helper",
   "version": "2.0.0",
-  "description": "Help to post in many groups",
+  "description": "Help you some tasks on facebook",
   "icons": {
     "16": "icons/icon-16.png",
     "48": "icons/icon-48.png",
@@ -17,7 +17,7 @@
     }
   },
   "options_ui": {
-    "page": "dashboard/dashboard.html",
+    "page": "dashboard/dashboard.html#nav=dashboard",
     "open_in_tab": true
   },
   "background": {

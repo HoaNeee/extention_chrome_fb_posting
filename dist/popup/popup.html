@@ -1,45 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FB Auto Post</title>
   <link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
   <div class="popup-container">
     <div class="popup-header">
       <img src="icons/icon-48.png" alt="icon" class="popup-icon">
-      <h1>FB Auto Post</h1>
+      <h1>FB Helper</h1>
     </div>
-    <p class="popup-desc">Automates posting text and media to Facebook News Feed and Groups.</p>
-    <div class="popup-section">
-      <h2>How to use</h2>
-      <ol>
-        <li>Navigate to <strong>facebook.com</strong></li>
-        <li>A floating panel will appear at the top-right corner</li>
-        <li>Enter your post content and attach media files</li>
-        <li>Select target: <em>News Feed</em> or <em>Current Group</em></li>
-        <li>Click <strong>RUN AUTO POST</strong></li>
-      </ol>
-    </div>
-    <div class="popup-section">
-      <h2>Tips</h2>
-      <ul>
-        <li>The panel is <strong>draggable</strong> - move it anywhere on the page</li>
-        <li>Click <strong>&#8212;</strong> to minimize, <strong>&times;</strong> to hide</li>
-        <li>Click <strong>CANCEL</strong> to abort mid-posting</li>
-        <li>Supports both English and Vietnamese Facebook interfaces</li>
-      </ul>
+    <div class="popup-body">
+      <p class="popup-desc">Help you some tasks on facebook.</p>
+      <div class="popup-section">
+        <h2>How to use</h2>
+        <ol>
+          <li>Navigate to <strong class="navigate-to-dashboard link-hover">Dashboard page</strong></li>
+          <li>Enter your post content and attach media files</li>
+          <li>Config list group need to post in <strong>List group</strong></li>
+          <li>Config settings if needed in <strong>Setting</strong></li>
+          <li>Click <strong>RUN AUTO POST</strong></li>
+        </ol>
+      </div>
+      <div class="popup-section">
+        <h2>Tips</h2>
+        <ul>
+          <li>Supports both English and Vietnamese Facebook interfaces</li>
+          <li>You can change theme in <strong>Dashboard</strong></li>
+        </ul>
 
-      <div>
-        <button id="btnOpenDashboard">Open dashboard</button>
+      </div>
+      <div class="popup-section">
+        <button class="navigate-to-dashboard btn">Open dashboard</button>
       </div>
     </div>
     <div class="popup-footer">
-      <span>v1.0.0</span>
+      <span>v2.0.0</span>
     </div>
   </div>
-  <script src="popup.js"></script>
+  <script type="module" src="popup.js"></script>
 </body>
+
 </html>

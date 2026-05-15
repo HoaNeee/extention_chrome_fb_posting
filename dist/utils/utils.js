@@ -1,4 +1,7 @@
-import { getLanguageInStorage } from "../dashboard/src/helpers/storage.js";
+import {
+  getIsDeveloperModeInStorage,
+  getLanguageInStorage,
+} from "../dashboard/src/helpers/storage.js";
 
 async function sleep(duration) {
   return await new Promise((resolve) => {
@@ -124,8 +127,11 @@ function randomID() {
   return Math.random().toString(36).substring(2, 10);
 }
 
-function logActions(...args) {
-  console.log(...args);
+async function logActions(...args) {
+  const isDevMode = await getIsDeveloperModeInStorage();
+  if (isDevMode) {
+    console.log(...args);
+  }
 }
 
 function logError(...args) {
@@ -164,7 +170,7 @@ async function initLanguage() {
 
 /**
  * @typedef {'vi'|'en'} Language
- * @param {{vi?: string, en?: string, language?: Language}} obj
+ * @param {{vi?: string, en?: string}} obj
  * @returns {string}
  */
 function getTextWithLanguage({ vi = "", en = "" } = obj) {
@@ -183,10 +189,11 @@ function getIsDashboardTab(url) {
   if (!url || typeof url !== "string") {
     return false;
   }
-  //chrome-extension://elehgogfekmbafjelekchplgdplbdefj/dashboard/dashboard.html
+  //chrome-extension://elehgogfekmbafjelekchplgdplbdefj/dashboard/dashboard.html#nav=....
   const pattern =
-    /^chrome-extension:\/\/[a-zA-Z0-9.]+\/dashboard\/dashboard\.html\/?$/;
-  return pattern.test(url);
+    /^chrome-extension:\/\/[a-zA-Z0-9.]+\/dashboard\/dashboard\.html([?#].*)?$/;
+  const isMatch = pattern.test(url);
+  return isMatch;
 }
 
 function getIsCorrectURL() {

@@ -10,6 +10,7 @@
   var KEY_UPDATE_STATUS_TASK = "update_status_task_posting";
   var KEY_NEXT_POST_GROUP = "next_post_group";
   var KEY_UPDATE_IS_SPAMMED = "update_is_spammed";
+  var KEY_ADD_LOG = "add_log";
 
   // dist/contants/contants.js
   var KEY_ALL_GROUPS = "all_groups";
@@ -17,6 +18,7 @@
   var KEY_IS_TEST = "is_test";
   var KEY_IS_IN_PROGRESS = "is_in_progress";
   var KEY_STOP_TASK = "is_stop_task";
+  var KEY_IS_DEVELOPER_MODE = "is_developer_mode";
   var KEY_TIME_DELAY = "time_delay";
   var KEY_IS_SCROLL_DETECT_LIST_GROUP = "is_scroll_detect_list_group";
   var KEY_CAN_POST_THIS_TAB = "can_post_this_tab";
@@ -78,6 +80,15 @@
   };
 
   // dist/dashboard/src/utils/api-helper.js
+  async function DB_getValue(key, defaultValue) {
+    try {
+      const result = await chrome.storage.local.get(key);
+      return result[key] !== void 0 ? result[key] : defaultValue;
+    } catch (e) {
+      console.log("[DB Compat] DB_getValue error:", e);
+      return defaultValue;
+    }
+  }
   var _menuCommands = /* @__PURE__ */ new Map();
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === "menuCommandClicked" && _menuCommands.has(msg.id)) {
@@ -104,6 +115,11 @@
       };
     }
   })();
+
+  // dist/dashboard/src/helpers/storage.js
+  async function getIsDeveloperModeInStorage() {
+    return await DB_getValue(KEY_IS_DEVELOPER_MODE) || false;
+  }
 
   // dist/utils/utils.js
   async function sleep(duration) {
@@ -153,8 +169,11 @@
   function randomID() {
     return Math.random().toString(36).substring(2, 10);
   }
-  function logActions(...args) {
-    console.log(...args);
+  async function logActions(...args) {
+    const isDevMode = await getIsDeveloperModeInStorage();
+    if (isDevMode) {
+      console.log(...args);
+    }
   }
   function logError(...args) {
     console.log(...args);
@@ -382,6 +401,34 @@
     }
   }
 
+  // dist/content/utils/request.js
+  async function sendMessage(type, data) {
+    try {
+      await chrome.runtime.sendMessage({
+        type,
+        data
+      });
+    } catch (error) {
+      throw new Error("Error at sendMessage: " + error);
+    }
+  }
+  async function sendMessageWithResponse(type, data) {
+    try {
+      const res = await chrome.runtime.sendMessage({
+        type,
+        data
+      });
+      if (res?.status === STATUS_RESPONSE.FAIL) {
+        throw new Error(
+          res?.msg || res?.message || "Error at sendMessageWithResponse"
+        );
+      }
+      return res;
+    } catch (error) {
+      throw new Error("Error at sendMessageWithResponse: " + error);
+    }
+  }
+
   // dist/content/helpers/groups.js
   async function getListElementContainer() {
     try {
@@ -461,8 +508,16 @@
           }
         }
       }
+      sendMessage(KEY_ADD_LOG, {
+        vi: `L\u1EA5y danh s\xE1ch nh\xF3m th\xE0nh c\xF4ng, t\u1ED5ng ${list.length} nh\xF3m`,
+        en: `Got ${list.length} groups successfully`
+      });
       return list;
     } catch (e) {
+      sendMessage(KEY_ADD_LOG, {
+        vi: `L\u1ED7i khi l\u1EA5y danh s\xE1ch nh\xF3m`,
+        en: `Error when getting list groups`
+      });
       logError("Error get list group: " + e);
       throw new Error("Error get list group: " + e);
     }
@@ -517,34 +572,6 @@
       }
     } catch (error) {
       throw new Error("Error scroll detect list groups: " + error);
-    }
-  }
-
-  // dist/content/utils/request.js
-  async function sendMessage(type, data) {
-    try {
-      await chrome.runtime.sendMessage({
-        type,
-        data
-      });
-    } catch (error) {
-      throw new Error("Error at sendMessage: " + error);
-    }
-  }
-  async function sendMessageWithResponse(type, data) {
-    try {
-      const res = await chrome.runtime.sendMessage({
-        type,
-        data
-      });
-      if (res?.status === STATUS_RESPONSE.FAIL) {
-        throw new Error(
-          res?.msg || res?.message || "Error at sendMessageWithResponse"
-        );
-      }
-      return res;
-    } catch (error) {
-      throw new Error("Error at sendMessageWithResponse: " + error);
     }
   }
 
@@ -622,6 +649,10 @@
         div.dispatchEvent(pasteEvent);
       }
     } catch (e) {
+      sendMessage(KEY_ADD_LOG, {
+        vi: `L\u1ED7i khi d\xE1n n\u1ED9i dung v\xE0o \xF4 nh\u1EADp`,
+        en: `Error when pasting content into the input box`
+      });
       throw new Error("Error at paste content: " + e);
     }
   }
@@ -652,6 +683,10 @@
         input.dispatchEvent(new Event("input", { bubbles: true }));
       }
     } catch (e) {
+      sendMessage(KEY_ADD_LOG, {
+        vi: `L\u1ED7i khi t\u1EA3i t\u1EC7p l\xEAn \xF4 nh\u1EADp`,
+        en: `Error when uploading files to the input box`
+      });
       throw new Error("Error at fill file: " + e);
     }
   }
@@ -696,13 +731,21 @@
         await sleep(500);
         if (!getIsExistDialog()) {
           logError("Dialog not found, try again first time");
+          sendMessage(KEY_ADD_LOG, {
+            vi: "\xD4 nh\u1EADp n\u1ED9i dung kh\xF4ng t\xECm th\u1EA5y, \u0111ang th\u1EED l\u1EA1i l\u1EA7n 1",
+            en: "Content input box not found, try again first time"
+          });
           const node = await findDivToPost();
           if (node) {
             node.click();
           }
-          await sleep(500);
+          await sleep(random(1, 4) * 1e3);
           if (!getIsExistDialog()) {
             logError("Dialog not found, try again second time");
+            sendMessage(KEY_ADD_LOG, {
+              vi: "\xD4 nh\u1EADp n\u1ED9i dung kh\xF4ng t\xECm th\u1EA5y, \u0111ang th\u1EED l\u1EA1i l\u1EA7n 2",
+              en: "Content input box not found, try again second time"
+            });
             const node2 = await findDivToPost();
             if (node2) {
               const evt = new MouseEvent("click", {
@@ -730,16 +773,32 @@
             }
           } else {
             logError("Dialog not found, can not post this group");
+            sendMessage(KEY_ADD_LOG, {
+              vi: "\xD4 nh\u1EADp n\u1ED9i dung kh\xF4ng t\xECm th\u1EA5y, kh\xF4ng th\u1EC3 \u0111\u0103ng b\xE0i trong nh\xF3m n\xE0y",
+              en: "Content input box not found, can not post this group"
+            });
           }
         }
         task.status = STATUS_TASK.DONE;
         sendMessage(KEY_UPDATE_STATUS_TASK, { status: task.status });
+        sendMessage(KEY_ADD_LOG, {
+          vi: "\u0110\xE3 th\u1EF1c hi\u1EC7n xong vi\u1EC7c \u0111\u0103ng b\xE0i trong nh\xF3m, chuy\u1EC3n sang nh\xF3m ti\u1EBFp theo.",
+          en: "Done posting in this group, switch to next group."
+        });
       } else {
         logError("Cant not post in this group");
+        sendMessage(KEY_ADD_LOG, {
+          vi: `Kh\xF4ng th\u1EC3 \u0111\u0103ng b\xE0i trong nh\xF3m n\xE0y v\xEC kh\xF4ng t\xECm \u0111\u01B0\u1EE3c th\u1EBB click \u0111\u1EC3 t\u1EA1o \xF4 input`,
+          en: `Can not post in this group because not found button to create input tag`
+        });
         task.status = STATUS_TASK.ERROR;
         sendMessage(KEY_UPDATE_STATUS_TASK, { status: task.status });
       }
     } catch (error) {
+      sendMessage(KEY_ADD_LOG, {
+        vi: `L\u1ED7i khi \u0111\u0103ng b\xE0i trong nh\xF3m n\xE0y ${error}`,
+        en: `Error when posting in this group ${error}`
+      });
       task.status = STATUS_TASK.ERROR;
       sendMessage(KEY_UPDATE_STATUS_TASK, { status: task.status });
       logError("Error at postHelper: " + error);
@@ -754,7 +813,10 @@
       if (getIsMatchUrl(URL_LIST_GROUPS)) {
         const isGetList = await CL_getValue(KEY_IS_SCROLL_DETECT_LIST_GROUP);
         if (isGetList) {
-          console.log("GET LIST GROUP");
+          sendMessage(KEY_ADD_LOG, {
+            vi: `B\u1EAFt \u0111\u1EA7u l\u1EA5y danh s\xE1ch nh\xF3m...`,
+            en: `Start getting list groups...`
+          });
           await sleep(4e3);
           const allGroups = await getListGroups();
           CL_setValue(KEY_ALL_GROUPS, allGroups);
@@ -775,6 +837,10 @@
         const canPost = responeCanPost.data.canPost;
         const task = responeCanPost.data.task;
         if (canPost) {
+          sendMessage(KEY_ADD_LOG, {
+            vi: `B\u1EAFt \u0111\u1EA7u \u0111\u0103ng b\xE0i trong nh\xF3m ${task?.id_href}`,
+            en: `Start posting in group ${task?.id_href}`
+          });
           await postHelper(task);
           const timeDelay = await CL_getTimeDelayInStorage();
           const timeDelayNext = timeDelay.openNewTab % 2 === 0 ? timeDelay.openNewTab / 2 : (timeDelay.openNewTab + 1) / 2;
@@ -810,6 +876,7 @@
           }
         }
       } catch (error) {
+        logError("Error at content posting main: ", error);
       }
     } catch (error) {
       logError("Error at content main: ", error);

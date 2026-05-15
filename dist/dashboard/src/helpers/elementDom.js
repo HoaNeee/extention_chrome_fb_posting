@@ -3,6 +3,10 @@ function getAllFieldsSetting(root = document) {
   const checkboxIsProcessing = root.querySelector(`#tm_checkbox-is-processing`);
   const checkboxIsTest = root.querySelector(`#tm_checkbox-is-test`);
   const checkboxIsScheduler = root.querySelector(`#tm_checkbox-is-scheduler`);
+  const checkboxIsSpammed = root.querySelector(`#tm_checkbox-is-spammed`);
+  const checkboxIsFixStealAllFocus = root.querySelector(
+    `#tm_checkbox-is-fix-steal-all-focus`,
+  );
 
   const checkboxIsFixStealFocus = root.querySelector(
     `#tm_checkbox-is-fix-steal-focus`,
@@ -65,6 +69,18 @@ function getAllFieldsSetting(root = document) {
     }
   }
 
+  function setIsSpammed(val) {
+    if (checkboxIsSpammed) {
+      checkboxIsSpammed.checked = val;
+    }
+  }
+
+  function setIsFixStealAllFocus(val) {
+    if (checkboxIsFixStealAllFocus) {
+      checkboxIsFixStealAllFocus.checked = val;
+    }
+  }
+
   return {
     getMaxGroupPerTime: () => Number(inputMaxGroup.value),
     getIsProcessing: () => checkboxIsProcessing.checked,
@@ -82,6 +98,10 @@ function getAllFieldsSetting(root = document) {
     setIsReloadDashboard: setIsReloadDashboard,
     getIsShuffleSchedulerTime: () => checkboxIsShuffleSchedulerTime.checked,
     setIsShuffleSchedulerTime: setIsShuffleSchedulerTime,
+    getIsSpammed: () => checkboxIsSpammed.checked,
+    setIsSpammed: setIsSpammed,
+    getIsFixStealAllFocus: () => checkboxIsFixStealAllFocus.checked,
+    setIsFixStealAllFocus: setIsFixStealAllFocus,
   };
 }
 
@@ -180,10 +200,67 @@ function showElement(selector = "", anchorElem = document) {
   }
 }
 
+/**
+ * Hide field
+ * @param {{
+ * selector: string,
+ * anchorElem: HTMLElement,
+ * fieldSelector: string
+ * }}
+ * @returns {void}
+ */
+function hideField({
+  selector = "",
+  anchorElem = document,
+  fieldSelector = "",
+} = {}) {
+  const element = anchorElem.querySelector(selector);
+  if (element) {
+    element.style.display = "none";
+    element.style.pointerEvents = "none";
+
+    const fieldContainer = element.closest(fieldSelector);
+    if (fieldContainer) {
+      fieldContainer.style.display = "none";
+      fieldContainer.style.pointerEvents = "none";
+    }
+  }
+}
+
+/**
+ * Show field
+ * @param {{
+ * selector: string,
+ * anchorElem: HTMLElement,
+ * fieldSelector: string
+ * }}
+ * @returns {void}
+ */
+function showField({
+  selector = "",
+  anchorElem = document,
+  fieldSelector = "",
+  display = "flex",
+} = {}) {
+  const element = anchorElem.querySelector(selector);
+  if (element) {
+    element.style.display = "block";
+    element.style.pointerEvents = "auto";
+
+    const fieldContainer = element.closest(fieldSelector);
+    if (fieldContainer) {
+      fieldContainer.style.display = display;
+      fieldContainer.style.pointerEvents = "auto";
+    }
+  }
+}
+
 export {
   getAllFieldsSetting,
   disabledElement,
   enabledElement,
   hideElement,
   showElement,
+  hideField,
+  showField,
 };
