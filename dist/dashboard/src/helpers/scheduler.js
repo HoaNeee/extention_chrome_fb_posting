@@ -98,18 +98,25 @@ function createSchedulerHours(val) {
   const newScheduler = [];
   const now = new Date();
   const oneHours = 60 * 60 * 1000;
-  let nextTime = new Date(now.getTime() + val * oneHours);
-  let nextHoursTime = nextTime.getHours();
-  const currentMinutes = now.getMinutes();
-  const set = new Set();
-  for (let i = 0; i < 24; i++) {
-    nextTime = new Date(nextTime.getTime() + val * oneHours);
-    nextHoursTime = nextTime.getHours();
-    set.add(nextHoursTime);
+  let nextTime = new Date(now.setHours(0, 0, 0, 0));
+  let day = nextTime.getDate();
+  const nextDay = day + 1;
+
+  let i = 0;
+
+  while (day < nextDay && i < 1000) {
+    nextTime = new Date(
+      nextTime.getTime() + val * oneHours + random(-7, 7) * 1000 * 60,
+    );
+    day = nextTime.getDate();
+    if (day < nextDay) {
+      const h = nextTime.getHours();
+      const m = nextTime.getMinutes();
+      newScheduler.push({ h, m });
+    }
+
+    ++i;
   }
-  set.forEach((h) => {
-    newScheduler.push({ h, m: currentMinutes + random(0, 5) });
-  });
 
   newScheduler.sort((a, b) => {
     if (a.h === b.h) {
