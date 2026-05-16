@@ -9,11 +9,10 @@ import {
   URL_LIST_GROUPS,
   KEY_CAN_POST_THIS_TAB,
   KEY_IS_SCROLL_DETECT_LIST_GROUP,
-  KEY_POST,
   KEY_IS_TEST,
 } from "../contants/contants.js";
 import { logError, random, sleep } from "../utils/utils.js";
-import { notificationContainer, showNotify } from "./elements/notify.js";
+import { notificationContainer } from "./elements/notify.js";
 import {
   checkIsSpammed,
   clickOutSideHideDialog,
@@ -29,8 +28,8 @@ import {
 import { CL_getValue, CL_setValue, getIsMatchUrl } from "./utils/utils.js";
 
 async function main() {
-  console.log("content script is running...");
   try {
+    console.log("content script is running...");
     notificationContainer({});
 
     //GET LIST GROUPS

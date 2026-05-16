@@ -45,7 +45,7 @@ export class DataSavedDB {
   // Lưu toàn bộ mảng (ghi đè)
   /**
    *
-   * @param {Array<{id: string, title: string, contents: string[], files: blob[]}>} postsArray
+   * @param {Array<{id: string, title: string, name: string, contents: string[], files: Blob[], priority: number}>} postsArray
    * @returns {Promise<void>}
    */
   async saveDataPosts(postsArray) {
@@ -62,7 +62,7 @@ export class DataSavedDB {
 
   /**
    * Add a new post to the array
-   * @param {{id: string, title: string, contents: string[], files: blob[] }} newPost
+   * @param {{id: string, title: string, name: string, contents: string[], files: Blob[], priority: number}} newPost
    * @returns {Promise<string>}
    */
   async addDataPost(newPost) {
@@ -77,7 +77,7 @@ export class DataSavedDB {
   /**
    * Update data post by ID
    * @param {string} postId
-   * @param {{id: string, title: string, contents: string[], files: blob[] }} updatedData
+   * @param {{id: string, title: string, name: string, contents: string[], files: Blob[], priority: number}} updatedData
    * @returns {Promise<void>}
    */
   async updateDataPost(postId, updatedData) {
@@ -104,7 +104,7 @@ export class DataSavedDB {
   /**
    * Find data post by ID
    * @param {string} postId
-   * @returns {Promise<{id: string, title: string, contents: string[], files: blob[] } | null>}
+   * @returns {Promise<{id: string, title: string, name: string, contents: string[], files: Blob[], priority: number} | null>}
    */
   async getDataPost(postId) {
     const posts = await this.getAllDataSaved();

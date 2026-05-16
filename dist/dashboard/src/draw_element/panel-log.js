@@ -73,18 +73,13 @@ async function initHistoryLogs() {
     if (!histories.length) {
       await addLog({ vi: "Bắt đầu sử dụng", en: "Start using" });
       histories = await getHistoryLogsInStorage();
+      return;
     }
 
     histories.forEach((msgObject) => {
       const div = drawHistoryLogItem(msgObject);
       historyLogs.appendChild(div);
     });
-
-    setTimeout(() => {
-      historyLogs.scrollTo({
-        top: historyLogs.scrollHeight,
-      });
-    }, 0);
 
     const btnClearHistory = document.querySelector("#tm_btn-clear-history");
     if (btnClearHistory) {
@@ -133,4 +128,19 @@ async function initHistoryLogs() {
   }
 }
 
-export { createPanelLog, addLog, initHistoryLogs, drawHistoryLogItem };
+function scrollHistoryLogs() {
+  const historyLogs = document.querySelector(".history-logs");
+  if (historyLogs) {
+    historyLogs.scrollTo({
+      top: historyLogs.scrollHeight,
+    });
+  }
+}
+
+export {
+  createPanelLog,
+  addLog,
+  initHistoryLogs,
+  drawHistoryLogItem,
+  scrollHistoryLogs,
+};

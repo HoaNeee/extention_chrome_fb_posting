@@ -10,7 +10,6 @@ import {
   KEY_STOP_TASK,
   URL_DASHBOARD,
   KEY_POST_LENGTH,
-  KEY_DATA_POST_SAVED,
   KEY_INDEXS_GROUP_CHECKED,
   KEY_IS_SCROLL_DETECT_LIST_GROUP,
   prefix,
@@ -23,11 +22,9 @@ import {
   KEY_IS_SHUFFLE_SCHEDULER_TIME,
   KEY_IS_SPAMMED,
   KEY_IS_FIX_STEAL_ALL_FOCUS,
+  KEY_IS_SHUFFLE_GROUPS_NEED_POST,
 } from "../../../contants/contants.js";
-import {
-  getCurrentGroupNeedPost,
-  resetPostedGroupAndSave,
-} from "../helpers/group.js";
+import { getGroupsMatch, resetPostedGroupAndSave } from "../helpers/group.js";
 import {
   createSchedulerDailyHours,
   createSchedulerHours,
@@ -37,47 +34,41 @@ import {
 } from "../helpers/scheduler.js";
 import {
   setProgress,
-  getRandomIndexGroupChecked,
-  setCurrentIndexGroupPost,
   getTimeDelayInStorage,
   setTimeDelayInStorage,
   setStrictlyMatchTitleGroupInStorage,
   getProgress,
+  getRandomIndexGroupChecked,
+  getStrictlyMatchTitleGroupInStorage,
 } from "../helpers/storage.js";
 import {
+  getAllDataGroupsInStorage,
   getListGroupsService,
-  getListGroupsNeedPostInStorage,
+  setGroupsNeedPost,
 } from "../services/groupService.js";
 import {
   DB_getValue,
   DB_setValue,
-  DB_openInTab,
   DB_deleteValue,
-  DB_sendMessage,
 } from "../utils/api-helper.js";
-import { DataSavedDB } from "../utils/dataSavedDB.js";
 import {
   now,
   sleep,
   findMatch,
   logError,
   randomID,
-  getLanguage,
   getTextWithLanguage,
+  logActions,
 } from "../../../utils/utils.js";
 import { updateDataSavedInfo } from "./dataSavedInfo.js";
-import {
-  createDialog,
-  dialogConfirm,
-  dialogContainer,
-  dialogViewScheduler,
-} from "./dialog.js";
+import { createDialog, dialogConfirm, dialogViewScheduler } from "./dialog.js";
 import { createDivListGroups } from "./listGroup.js";
 import { showNotify } from "./notify.js";
 import { drawPanelGroup } from "./panelGroup.js";
 import {
   setDataSavedInStorage,
   getDataSavedInStorage,
+  getDataGroupsSavedNeedPost,
 } from "../services/dataSavedService.js";
 import {
   automation,
@@ -87,7 +78,6 @@ import {
 import {
   clearAndCreateSchedulerAlarm,
   clearSchedulerAuto,
-  createSchedulerAuto,
   getSchedulerService,
   setSchedulerService,
 } from "../services/scheduler-service.js";
@@ -118,6 +108,7 @@ function drawInnerRoot() {
               <button button id="${prefix}btn-reset-groups" style="width: 100%;">${getTextWithLanguage({ vi: "Đặt lại tất cả nhóm", en: "Reset All Groups" })}</button>
               <button button id="${prefix}btn-reset-is-spammed" style="width: 100%;">${getTextWithLanguage({ vi: "Đặt lại trạng thái bị spam", en: "Reset is spammed" })}</button>
             </div>
+            <button button id="${prefix}btn-update-groups-need-post" style="width: 100%;">${getTextWithLanguage({ vi: "Cập nhật danh sách nhóm cần đăng", en: "Update groups need post" })}</button>
             <button button id="${prefix}btn-reset" style="width: 100%;">${getTextWithLanguage({ vi: "Đặt lại tất cả", en: "Reset All" })}</button>
             <button button id="${prefix}btn-test-auto" style="width: 100%;">${getTextWithLanguage({ vi: "Kiểm thử (dev)", en: "Test Auto" })}</button>
             <button button id="${prefix}btn-click" style="width: 100%;">${getTextWithLanguage({ vi: "Click", en: "Click" })}</button>
@@ -166,6 +157,10 @@ function drawInnerRoot() {
           <div class="${prefix}field-container field-checkbox">
             <input type="checkbox" id="${prefix}checkbox-is-fix-steal-focus">
             <label for="${prefix}checkbox-is-fix-steal-focus" style="user-select: none;">${getTextWithLanguage({ vi: "Tránh nhảy tab", en: "Fix steal focus" })}</label>
+          </div>
+          <div class="${prefix}field-container field-checkbox">
+            <input type="checkbox" id="${prefix}checkbox-is-shuffle-groups-need-post">
+            <label for="${prefix}checkbox-is-shuffle-groups-need-post" style="user-select: none;">${getTextWithLanguage({ vi: "Tự động trộn nhóm cần đăng", en: "Shuffle groups need post" })}</label>
           </div>
           <div class="${prefix}field-container field-checkbox">
             <input type="checkbox" id="${prefix}checkbox-is-fix-steal-all-focus">
@@ -380,6 +375,7 @@ async function createPanel(doc = document.body) {
                 contents: group.contents,
                 files: group.files,
                 name: group?.name || "",
+                priority: group?.priority || "",
               },
               type: "edit",
               onDelete: () => {
@@ -421,6 +417,7 @@ async function createPanel(doc = document.body) {
           type: "success",
         });
       },
+      initPriority: dataListDataSaved.length + 1,
     });
 
     const { setIsShow: setIsShowAddDialogGroup } = createDialog({
@@ -788,9 +785,12 @@ async function createPanel(doc = document.body) {
                   const data = JSON.parse(content);
                   if (data) {
                     const dataSaved = (await getDataSavedInStorage()) || [];
+                    let prio = dataSaved.length + 1;
                     if (Array.isArray(data)) {
                       for (const item of data) {
                         item.id = randomID();
+                        item.priority = prio;
+                        ++prio;
                       }
                       const newDataSaved = [...dataSaved, ...data];
                       setDataSavedInStorage(newDataSaved);
@@ -807,6 +807,7 @@ async function createPanel(doc = document.body) {
                     //import only one not array
                     else {
                       data.id = randomID();
+                      data.priority = prio;
                       dataSaved.push(data);
                       setDataSavedInStorage(dataSaved);
                       showNotify({
@@ -1074,8 +1075,86 @@ async function createPanel(doc = document.body) {
             //     vi: "test log 1 tieng viet",
             //   });
             // }, 1000);
+            console.log(await getRandomIndexGroupChecked());
           } catch (error) {
             logError("Error at btnClick click event: ", error);
+          }
+        });
+      }
+
+      const btnUpdateGroupsNeedPost = document.querySelector(
+        `#tm_btn-update-groups-need-post`,
+      );
+      if (btnUpdateGroupsNeedPost) {
+        btnUpdateGroupsNeedPost.addEventListener("click", async () => {
+          try {
+            const allGroups = await getAllDataGroupsInStorage();
+
+            const indexsChecked =
+              (await DB_getValue(KEY_INDEXS_GROUP_CHECKED)) || [];
+
+            const dataSaveds = await getDataGroupsSavedNeedPost();
+
+            const listGroups = allGroups;
+
+            const titleStrictlyMatch =
+              await getStrictlyMatchTitleGroupInStorage();
+            let list = [];
+            for (const data of dataSaveds) {
+              const id = data.id;
+              if (
+                indexsChecked &&
+                Array.isArray(indexsChecked) &&
+                indexsChecked.includes(id)
+              ) {
+                const title = data.title;
+                const name = data.name || "";
+                const priority = data.priority || 1;
+                const listGroupsMatch = getGroupsMatch({
+                  title,
+                  listGroups,
+                  titleStrictlyMatch,
+                });
+
+                list.push({
+                  id,
+                  title,
+                  name,
+                  priority,
+                  groups: listGroupsMatch,
+                });
+              }
+            }
+
+            // //sort by groups length asc
+            list = list.sort((a, b) => {
+              if (
+                a.priority !== b.priority &&
+                a.priority !== undefined &&
+                b.priority !== undefined &&
+                a.priority !== null &&
+                b.priority !== null
+              ) {
+                return a.priority - b.priority;
+              }
+              return a.groups.length - b.groups.length;
+            });
+
+            showNotify({
+              message: "Update groups need post successfully",
+              type: "success",
+            });
+
+            addLog({
+              vi: "Bạn vừa cập nhật danh sách nhóm cần đăng",
+              en: "You just updated the list of groups need post",
+            });
+
+            logActions("update data", list);
+
+            await setGroupsNeedPost(list);
+          } catch (error) {
+            logError("Error at btnUpdateGroupsNeedPost click event: ", error);
           }
         });
       }
@@ -1167,6 +1246,10 @@ async function createPanel(doc = document.body) {
               vi: "Xóa nhóm",
             });
             btnClearGroup.style.background = "";
+            addLog({
+              vi: "Bạn vừa xóa hết danh sách nhóm cần đăng",
+              en: "You just cleared all groups need post",
+            });
           } else {
             isConfirmingClearGroups = true;
             btnClearGroup.innerText = getTextWithLanguage({
@@ -1434,6 +1517,17 @@ async function createPanel(doc = document.body) {
           checboxIsShuffleSchedulerTime.addEventListener("change", (e) => {
             const val = e.target.checked;
             DB_setValue(KEY_IS_SHUFFLE_SCHEDULER_TIME, val);
+            updateDataSavedInfo();
+          });
+        }
+
+        const checboxIsShuffleGroupsNeedPost = root.querySelector(
+          `#${prefix}checkbox-is-shuffle-groups-need-post`,
+        );
+        if (checboxIsShuffleGroupsNeedPost) {
+          checboxIsShuffleGroupsNeedPost.addEventListener("change", (e) => {
+            const val = e.target.checked;
+            DB_setValue(KEY_IS_SHUFFLE_GROUPS_NEED_POST, val);
             updateDataSavedInfo();
           });
         }

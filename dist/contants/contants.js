@@ -49,6 +49,7 @@ const KEY_IS_FIX_STEAL_FOCUS = "is_fix_steal_focus";
 const KEY_IS_FIX_STEAL_ALL_FOCUS = "is_fix_steal_all_focus";
 
 const KEY_IS_SHUFFLE_SCHEDULER_TIME = "is_shuffle_scheduler_time";
+const KEY_IS_SHUFFLE_GROUPS_NEED_POST = "is_shuffle_groups_need_post";
 
 const KEY_IS_SPAMMED = "is_spammed";
 
@@ -226,4 +227,5 @@ export {
   KEY_COUNT_POST,
   APP_NAME,
   KEY_HISTORY_LOGS,
+  KEY_IS_SHUFFLE_GROUPS_NEED_POST,
 };

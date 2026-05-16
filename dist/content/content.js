@@ -807,8 +807,8 @@
 
   // dist/content/content-src.js
   async function main() {
-    console.log("content script is running...");
     try {
+      console.log("content script is running...");
       notificationContainer({});
       if (getIsMatchUrl(URL_LIST_GROUPS)) {
         const isGetList = await CL_getValue(KEY_IS_SCROLL_DETECT_LIST_GROUP);

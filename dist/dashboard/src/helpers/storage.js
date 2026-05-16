@@ -13,6 +13,7 @@ import {
   KEY_IS_DEVELOPER_MODE,
   KEY_HISTORY_LOGS,
   APP_NAME,
+  KEY_IS_SHUFFLE_GROUPS_NEED_POST,
 } from "../../../contants/contants.js";
 import {
   getAllGroupPostedsInStorage,
@@ -54,33 +55,41 @@ async function getRandomIndexGroupChecked() {
   try {
     const objectList = await getListGroupsNeedPostInStorage();
     const listGroups = objectList?.groups || [];
-    const indexsChecked = (await DB_getValue(KEY_INDEXS_GROUP_CHECKED)) || [];
-    if (!indexsChecked.length) {
+    if (!listGroups.length) {
       return null;
     }
-    const randomIndex = random(0, indexsChecked.length - 1);
-    let id = indexsChecked[randomIndex];
 
-    let need = listGroups.find((gr) => gr.id === id);
+    const isShuffleGroup = await getIsShuffleGroupNeedPost();
+    let index = 0;
+    let id = listGroups[index].id;
+
+    if (isShuffleGroup) {
+      index = random(0, listGroups.length - 1);
+      id = listGroups[index].id;
+    }
+
+    let need = listGroups[index];
 
     let groups = need?.groups || [];
+
     const posteds = await getAllGroupPostedsInStorage();
     const set = new Set(posteds);
+
     groups = groups.filter((gr) => !set.has(gr.id_href));
 
     const isAllNotPending = groups.every((gr) => gr.status !== "pending");
 
     if (isAllNotPending) {
       let isPostedAll = true;
-      for (const indexId of indexsChecked) {
-        if (indexId === id) continue;
-        const needTemp = listGroups.find((gr) => gr.id === indexId);
-        const groupsTemp = needTemp?.groups || [];
+      for (const gr of listGroups) {
+        if (gr.id === id) continue;
+
+        const groupsTemp = gr?.groups || [];
         const isExistPending = groupsTemp.some(
           (gr) => gr.status === "pending" && !set.has(gr.id_href),
         );
         if (isExistPending) {
-          id = indexId;
+          id = gr.id;
           isPostedAll = false;
           break;
         }
@@ -213,6 +222,13 @@ async function getHistoryLogsInStorage() {
 }
 
 /**
+ * @returns {Promise<boolean>} The setting for whether to shuffle groups need post, defaulting to false if not set
+ */
+async function getIsShuffleGroupNeedPost() {
+  return (await DB_getValue(KEY_IS_SHUFFLE_GROUPS_NEED_POST)) || false;
+}
+
+/**
  *
  * @param {{vi: string, en: string}} msg log to add to history
  */
@@ -263,4 +279,5 @@ export {
   addHistoryLog,
   getHistoryLogsInStorage,
   clearHistoryLogs,
+  getIsShuffleGroupNeedPost,
 };

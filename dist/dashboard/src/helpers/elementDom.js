@@ -7,6 +7,9 @@ function getAllFieldsSetting(root = document) {
   const checkboxIsFixStealAllFocus = root.querySelector(
     `#tm_checkbox-is-fix-steal-all-focus`,
   );
+  const checkboxIsShuffleGroupsNeedPost = root.querySelector(
+    `#tm_checkbox-is-shuffle-groups-need-post`,
+  );
 
   const checkboxIsFixStealFocus = root.querySelector(
     `#tm_checkbox-is-fix-steal-focus`,
@@ -81,6 +84,12 @@ function getAllFieldsSetting(root = document) {
     }
   }
 
+  function setIsShuffleGroupsNeedPost(val) {
+    if (checkboxIsShuffleGroupsNeedPost) {
+      checkboxIsShuffleGroupsNeedPost.checked = val;
+    }
+  }
+
   return {
     getMaxGroupPerTime: () => Number(inputMaxGroup.value),
     getIsProcessing: () => checkboxIsProcessing.checked,
@@ -102,6 +111,8 @@ function getAllFieldsSetting(root = document) {
     setIsSpammed: setIsSpammed,
     getIsFixStealAllFocus: () => checkboxIsFixStealAllFocus.checked,
     setIsFixStealAllFocus: setIsFixStealAllFocus,
+    getIsShuffleGroupsNeedPost: () => checkboxIsShuffleGroupsNeedPost.checked,
+    setIsShuffleGroupsNeedPost: setIsShuffleGroupsNeedPost,
   };
 }
 

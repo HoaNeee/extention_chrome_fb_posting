@@ -33,6 +33,7 @@ import {
   resetPostedGroupAndSave,
 } from "./dashboard/src/helpers/group.js";
 import {
+  getCorrectNextTime,
   getNextTimePost,
   shuffleTimes,
 } from "./dashboard/src/helpers/scheduler.js";
@@ -81,162 +82,19 @@ const KEY_COUNT_TRIGGER_TEST = "count triggered";
 const KEY_OPEN_DASHBOARD = "OPEN_DASHBOARD";
 
 //ALARMS
-chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name === KEY_SCHEDULER_ALARMS) {
-    try {
-      const tabs = await chrome.tabs.query({});
-
-      let isOpenningDashboardTab = false;
-      for (const tab of tabs) {
-        const url = tab.url;
-        if (getIsDashboardTab(url)) {
-          isOpenningDashboardTab = true;
-          break;
-        }
-      }
-      const isProgress = await getProgressTool();
-      if (!isOpenningDashboardTab || isProgress) {
-        if (isProgress) {
-          setProgressTool(false);
-        }
-        clearSchedulerAuto();
-        return;
-      }
-      logActions("Its time to post, random post this time or not");
-
-      addLog({
-        vi: "Đã đến giờ đăng bài trong lịch trình, đang tính toán có nên đăng bài đợt này không",
-        en: "It's time to post in the schedule, calculating whether to post this batch or not",
-      });
-
-      function sleepThisTime() {
-        addLog({
-          vi: "Đã quyết định nghỉ đợt đăng bài lần này, chuyển sang đợt tiếp theo",
-          en: "Decided to skip this batch, will start next batch",
-        });
-        setProgressTool(false);
-        setCountPost(0);
-        clearAndCreateSchedulerAlarm();
-      }
-
-      const countPost = await getCountPost();
-      if (countPost > 7) {
-        sleepThisTime();
-        return;
-      }
-      if (countPost >= 5 && countPost <= 7) {
-        //increase percent to sleep this time
-        const rd = random(0, 10);
-        if (rd >= 3) {
-          sleepThisTime();
-          return;
-        }
-      }
-      //random this time to post or not with 10% chance
-      const rand = random(0, 10);
-      if (rand >= 10 && countPost >= 2) {
-        sleepThisTime();
-        return;
-      }
-      addLog({
-        vi: "Quyết định bắt đầu đợt đăng bài",
-        en: "Decided to start this batch",
-      });
-      await automationContinue();
-      const isShuffle =
-        (await BG_getValue(KEY_IS_SHUFFLE_SCHEDULER_TIME)) || false;
-      if (isShuffle) {
-        shuffleTimes();
-      }
-    } catch (error) {
-      logError("Error at alarm: ", error);
-    }
-  }
+chrome.alarms.onAlarm.addListener((alarm) => {
+  handleOnAlarm(alarm);
 });
 
 //EVENT: tab remove
-chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
-  // console.log("Tab remove id: " + tabId);
-  const tabIdGetListGroup = await BG_getValue(KEY_TAB.TAB_GET_LIST_GROUP_ID);
-  if (tabId === tabIdGetListGroup) {
-    const isScroll = await BG_getValue(KEY_IS_SCROLL_DETECT_LIST_GROUP);
-    if (isScroll) {
-      BG_setValue(KEY_IS_SCROLL_DETECT_LIST_GROUP, false);
-      BG_deleteValue(KEY_TAB.TAB_GET_LIST_GROUP_ID);
-      addLog({
-        vi: "Đã dừng lấy danh sách nhóm do tab bị đóng thủ công",
-        en: "Stopped getting group list because tab was closed manually",
-      });
-    }
-  }
-
-  //check when posting was be close
-  const tabIdPost = await BG_getValue(KEY_TAB.LAST_POST_TAB_OPEN_ID);
-  if (tabId === tabIdPost) {
-    const isProgress = await getProgressTool();
-    if (isProgress) {
-      setProgressTool(false);
-      BG_deleteValue(KEY_TAB.LAST_POST_TAB_OPEN_ID);
-      addLog({
-        vi: "Đã dừng đăng bài đợt này do tab bị đóng thủ công",
-        en: "Stopped posting this batch because tab was closed manually",
-      });
-    }
-  }
-
-  const tabIdDashboard = await BG_getValue(KEY_TAB.TAB_DASHBOARD_ID);
-  if (tabId === tabIdDashboard) {
-    clearSchedulerAuto();
-    BG_deleteValue(KEY_TAB.TAB_DASHBOARD_ID);
-  }
+chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
+  handleOnRemove(tabId);
 });
 
 //EVENT: reload not create tab
-chrome.webNavigation.onCommitted.addListener(async (details) => {
-  //check get list groups tab was be reload -> set
-  const tabIdGetListGroup = await BG_getValue(KEY_TAB.TAB_GET_LIST_GROUP_ID);
-  const tabIdPost = await BG_getValue(KEY_TAB.LAST_POST_TAB_OPEN_ID);
-  if (details.frameId === 0) {
-    const currentId = details.tabId;
-
-    //check get list groups tab was be reload
-    if (currentId === tabIdGetListGroup) {
-      if (details.transitionType === "reload") {
-        const isScroll = await BG_getValue(KEY_IS_SCROLL_DETECT_LIST_GROUP);
-        if (isScroll) {
-          BG_setValue(KEY_IS_SCROLL_DETECT_LIST_GROUP, false);
-          BG_deleteValue(KEY_TAB.TAB_GET_LIST_GROUP_ID);
-          addLog({
-            vi: "Đã dừng lấy danh sách nhóm do tab bị load lại thủ công",
-            en: "Stopped getting group list because tab was reloaded manually",
-          });
-        }
-      }
-    }
-
-    //check when posting was be reload -> set
-    if (currentId === tabIdPost) {
-      if (details.transitionType === "reload") {
-        setProgressTool(false);
-        BG_deleteValue(KEY_TAB.LAST_POST_TAB_OPEN_ID);
-        addLog({
-          vi: "Đã dừng đăng bài đợt này do tab bị load lại thủ công",
-          en: "Stopped posting this batch because tab was reloaded manually",
-        });
-      }
-    }
-
-    const url = details.url || "";
-    if (getIsDashboardTab(url) && details.transitionType !== "reload") {
-      BG_setValue(KEY_TAB.TAB_DASHBOARD_ID, currentId);
-    }
-  }
+chrome.webNavigation.onCommitted.addListener((details) => {
+  handleOnCommited(details);
 });
-
-// chrome.storage.onChanged.addListener(async (changes, areaName) => {
-//   console.log("Changes: ", changes);
-//   console.log("Area name: ", areaName);
-// });
 
 // ============================================================
 // MESSAGE ROUTER: Listens for messages from content scripts
@@ -285,11 +143,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       //CLOSE THIS TAB
       case KEY_CLOSE_THIS_TAB:
-        try {
-          chrome.tabs.remove(sender.tab.id);
-        } catch (error) {
-          logError("Error close this tab: ", error);
-        }
+        handleCloseThisTab(sender);
         break;
 
       case KEY_GET_LIST_GROUPS:
@@ -519,10 +373,15 @@ async function handleOpenDashboard() {
   const urlDashboard = chrome.runtime.getURL(
     "dashboard/dashboard.html#nav=dashboard",
   );
-  const tabs = await chrome.tabs.query({ url: urlDashboard });
-  if (tabs && tabs?.length > 0) {
-    chrome.tabs.update(tabs[0].id, { active: true });
-  } else {
+  const tabs = await chrome.tabs.query({});
+  if (tabs && Array.isArray(tabs) && tabs?.length > 0) {
+    for (const tab of tabs) {
+      const url = tab.url;
+      if (url.includes("dashboard")) {
+        chrome.tabs.update(tab.id, { active: true });
+        return;
+      }
+    }
     chrome.tabs.create({
       url: urlDashboard,
       active: true,
@@ -582,6 +441,212 @@ async function handleAddLog(message) {
     addLog({ vi: message?.vi || "", en: message?.en || "" });
   } catch (error) {
     logError("Error add log: ", error);
+  }
+}
+
+async function handleWelcomeBack() {
+  try {
+    addLog({
+      vi: "Chào mừng bạn quay trở lại",
+      en: "Welcome back",
+    });
+    const isProgress = await getProgressTool();
+    if (!isProgress) {
+      const scheduler = await getSchedulerService();
+      if (scheduler.isScheduler) {
+        const nextTime = await getCorrectNextTime();
+        const date = new Date(nextTime);
+        addLog({
+          vi:
+            "Lịch trình tự động đang được bật, thời gian thực hiện tiếp theo: " +
+            date.toLocaleString(),
+          en:
+            "Auto schedule is enabled, the next execution time: " +
+            date.toLocaleString(),
+        });
+      }
+    } else {
+      addLog({
+        vi: "Tiện ích đang trong quá trình chạy, hãy cố gắng đừng đóng tab này",
+        en: "Tool is running, please try not to close this tab",
+      });
+    }
+  } catch (error) {
+    logError("Error at handleWelcomeBack method: ", error);
+  }
+}
+
+async function handleCloseThisTab(sender) {
+  try {
+    chrome.tabs.query({}, function (tabs) {
+      const id = sender.tab.id;
+      if (tabs && Array.isArray(tabs) && tabs.find((t) => t.id === id)) {
+        chrome.tabs.remove(id);
+      }
+    });
+  } catch (error) {
+    logError("Error handle close this tab: ", error);
+  }
+}
+
+async function handleOnCommited(details) {
+  try {
+    if (details.frameId === 0) {
+      const currentId = details.tabId;
+
+      if (details.transitionType === "reload") {
+        const tabIdGetListGroup = await BG_getValue(
+          KEY_TAB.TAB_GET_LIST_GROUP_ID,
+        );
+        //check get list groups tab was be reload
+        if (currentId === tabIdGetListGroup) {
+          const isScroll = await BG_getValue(KEY_IS_SCROLL_DETECT_LIST_GROUP);
+          if (isScroll) {
+            BG_setValue(KEY_IS_SCROLL_DETECT_LIST_GROUP, false);
+            BG_deleteValue(KEY_TAB.TAB_GET_LIST_GROUP_ID);
+            addLog({
+              vi: "Đã dừng lấy danh sách nhóm do tab bị load lại thủ công",
+              en: "Stopped getting group list because tab was reloaded manually",
+            });
+          }
+        }
+
+        const tabIdPost = await BG_getValue(KEY_TAB.LAST_POST_TAB_OPEN_ID);
+        //check when posting was be reload -> set
+        if (currentId === tabIdPost) {
+          setProgressTool(false);
+          BG_deleteValue(KEY_TAB.LAST_POST_TAB_OPEN_ID);
+          addLog({
+            vi: "Đã dừng đăng bài đợt này do tab bị load lại thủ công",
+            en: "Stopped posting this batch because tab was reloaded manually",
+          });
+        }
+      }
+
+      if (details.transitionType !== "reload") {
+        const url = details.url || "";
+
+        //when user open dashboard tab -> set tab id, not exist dashboard tab and reload it
+        if (getIsDashboardTab(url)) {
+          handleWelcomeBack();
+          BG_setValue(KEY_TAB.TAB_DASHBOARD_ID, currentId);
+        }
+      }
+    }
+  } catch (error) {
+    logError("Error at handleOnCommited method: ", error);
+  }
+}
+
+async function handleOnRemove(tabId) {
+  try {
+    const tabIdGetListGroup = await BG_getValue(KEY_TAB.TAB_GET_LIST_GROUP_ID);
+    if (tabId === tabIdGetListGroup) {
+      const isScroll = await BG_getValue(KEY_IS_SCROLL_DETECT_LIST_GROUP);
+      if (isScroll) {
+        BG_setValue(KEY_IS_SCROLL_DETECT_LIST_GROUP, false);
+        BG_deleteValue(KEY_TAB.TAB_GET_LIST_GROUP_ID);
+        addLog({
+          vi: "Đã dừng lấy danh sách nhóm do tab bị đóng thủ công",
+          en: "Stopped getting group list because tab was closed manually",
+        });
+      }
+    }
+
+    //check when posting was be close
+    const tabIdPost = await BG_getValue(KEY_TAB.LAST_POST_TAB_OPEN_ID);
+    if (tabId === tabIdPost) {
+      const isProgress = await getProgressTool();
+      if (isProgress) {
+        setProgressTool(false);
+        BG_deleteValue(KEY_TAB.LAST_POST_TAB_OPEN_ID);
+        addLog({
+          vi: "Đã dừng đăng bài đợt này do tab bị đóng thủ công",
+          en: "Stopped posting this batch because tab was closed manually",
+        });
+      }
+    }
+
+    const tabIdDashboard = await BG_getValue(KEY_TAB.TAB_DASHBOARD_ID);
+    if (tabId === tabIdDashboard) {
+      clearSchedulerAuto();
+      BG_deleteValue(KEY_TAB.TAB_DASHBOARD_ID);
+    }
+  } catch (error) {
+    logError("Error at handleRemove", error);
+  }
+}
+
+async function handleOnAlarm(alarm) {
+  try {
+    if (alarm.name === KEY_SCHEDULER_ALARMS) {
+      const tabs = await chrome.tabs.query({});
+
+      let isOpenningDashboardTab = false;
+      for (const tab of tabs) {
+        const url = tab.url;
+        if (getIsDashboardTab(url)) {
+          isOpenningDashboardTab = true;
+          break;
+        }
+      }
+      const isProgress = await getProgressTool();
+      if (!isOpenningDashboardTab || isProgress) {
+        if (isProgress) {
+          setProgressTool(false);
+        }
+        clearSchedulerAuto();
+        return;
+      }
+      logActions("Its time to post, random post this time or not");
+
+      addLog({
+        vi: "Đã đến giờ đăng bài trong lịch trình, đang tính toán có nên đăng bài đợt này không",
+        en: "It's time to post in the schedule, calculating whether to post this batch or not",
+      });
+
+      function sleepThisTime() {
+        addLog({
+          vi: "Đã quyết định nghỉ đợt đăng bài lần này, chuyển sang đợt tiếp theo",
+          en: "Decided to skip this batch, will start next batch",
+        });
+        setProgressTool(false);
+        setCountPost(0);
+        clearAndCreateSchedulerAlarm();
+      }
+
+      const countPost = await getCountPost();
+      if (countPost > 7) {
+        sleepThisTime();
+        return;
+      }
+      if (countPost >= 5 && countPost <= 7) {
+        //increase percent to sleep this time
+        const rd = random(0, 10);
+        if (rd >= 3) {
+          sleepThisTime();
+          return;
+        }
+      }
+      //random this time to post or not with 10% chance
+      const rand = random(0, 10);
+      if (rand >= 10 && countPost >= 2) {
+        sleepThisTime();
+        return;
+      }
+      addLog({
+        vi: "Quyết định bắt đầu đợt đăng bài",
+        en: "Decided to start this batch",
+      });
+      await automationContinue();
+      const isShuffle =
+        (await BG_getValue(KEY_IS_SHUFFLE_SCHEDULER_TIME)) || false;
+      if (isShuffle) {
+        shuffleTimes();
+      }
+    }
+  } catch (error) {
+    logError("Error at alarm: ", error);
   }
 }
 

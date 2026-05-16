@@ -29,6 +29,7 @@ import {
   KEY_IS_SPAMMED,
   KEY_NEXT_TIME_POST_WHEN_SPAMMED,
   KEY_IS_FIX_STEAL_ALL_FOCUS,
+  KEY_IS_SHUFFLE_GROUPS_NEED_POST,
 } from "../../../contants/contants.js";
 import { updateDataSavedInfo } from "../draw_element/dataSavedInfo.js";
 import {
@@ -62,6 +63,7 @@ async function initialData({ anchorElement = document.body }) {
         setIsShuffleSchedulerTime,
         setIsSpammed,
         setIsFixStealAllFocus,
+        setIsShuffleGroupsNeedPost,
       } = getAllFieldsSetting();
 
       //get max group
@@ -93,6 +95,10 @@ async function initialData({ anchorElement = document.body }) {
       const isShuffleSchedulerTime =
         (await DB_getValue(KEY_IS_SHUFFLE_SCHEDULER_TIME)) || false;
       setIsShuffleSchedulerTime(isShuffleSchedulerTime);
+
+      const isShuffleGroupsNeedPost =
+        (await DB_getValue(KEY_IS_SHUFFLE_GROUPS_NEED_POST)) || false;
+      setIsShuffleGroupsNeedPost(isShuffleGroupsNeedPost);
 
       const scheduler = await getSchedulerService();
 

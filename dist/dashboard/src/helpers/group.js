@@ -159,7 +159,7 @@ async function getCurrentGroupNeedPost() {
 
 /**
  *
- * @returns {Promise<{ id, title, contents: string[], files: Blob[] }>} or null if not exist
+ * @returns {Promise<{ id, title, contents: string[], files: Blob[], priority: number }>} or null if not exist
  */
 async function getCurrentDataGroupSavedNeedPost() {
   try {

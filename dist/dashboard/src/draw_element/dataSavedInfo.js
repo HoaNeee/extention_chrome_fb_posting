@@ -4,6 +4,7 @@ import {
   KEY_COUNT_RESET_GROUPS,
   KEY_IS_DEVELOPER_MODE,
   KEY_IS_IN_PROGRESS,
+  KEY_IS_SHUFFLE_GROUPS_NEED_POST,
   KEY_IS_SHUFFLE_SCHEDULER_TIME,
   KEY_IS_SPAMMED,
   KEY_IS_TEST,
@@ -59,6 +60,7 @@ function getDataSavedHTML({
   isSpammed = false,
   nextTimeWhenSpammed = 0,
   countBatch = 0,
+  isShuffleGroupsNeedPost = false,
 }) {
   /*
     type of current group: {
@@ -169,6 +171,7 @@ function getDataSavedHTML({
           <div id="${prefix}is-processing-status">${getTextWithLanguage({ vi: "Đang chạy auto", en: "Is Processing" })}: <span style="color: ${colorByDisabled(isProcessing)};">${enabledString(isProcessing)}</span></div>
           <div id="${prefix}is-scheduler-status">${getTextWithLanguage({ vi: "Đang lên lịch", en: "Is Scheduler" })}: <span style="color: ${colorByDisabled(isScheduler)};">${enabledString(isScheduler)}</span></div>
           <div id="${prefix}is-fix-steal-focus-status">${getTextWithLanguage({ vi: "Tránh nhảy tab", en: "Is Fix Steal Focus" })}: <span style="color: ${colorByDisabled(isFixStealFocus)};">${enabledString(isFixStealFocus)}</span></div>
+          <div id="${prefix}is-shuffle-groups-need-post-status">${getTextWithLanguage({ vi: "Trộn nhóm cần đăng", en: "Is Shuffle Groups Need Post" })}: <span style="color: ${colorByDisabled(isShuffleGroupsNeedPost)};">${enabledString(isShuffleGroupsNeedPost)}</span></div>
           <div id="${prefix}is-shuffle-time-status">${getTextWithLanguage({ vi: "Trộn lịch đăng", en: "Is Shuffle Time" })}: <span style="color: ${colorByDisabled(isShuffleTime)};">${enabledString(isShuffleTime)}</span></div>
           ${forDevHtml}
           <div style="word-break: break-word;">${getTextWithLanguage({ vi: "Nhóm hiện tại", en: "Current Group" })}: ${currentGroup?.id_href || getTextWithLanguage({ en: "Available", vi: "Không có sẵn" })}</div>
@@ -262,6 +265,8 @@ async function updateDataSavedInfo() {
         isSpammed: (await DB_getValue(KEY_IS_SPAMMED)) || false,
         nextTimeWhenSpammed: await getNextTimePostWhenSpammed(),
         countBatch: (await DB_getValue(KEY_COUNT_POST)) || 0,
+        isShuffleGroupsNeedPost:
+          (await DB_getValue(KEY_IS_SHUFFLE_GROUPS_NEED_POST)) || false,
       });
       dataSavedEl.innerHTML = html;
     }

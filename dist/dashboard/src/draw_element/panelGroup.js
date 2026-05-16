@@ -39,11 +39,12 @@ function drawPreviewImage(files) {
 /**
  *
  * @param {Object} options
- * @param {{id: string, title: string, name: string, contents: string, files: Blob[]}|null} options.initialData - The initial data to populate the panel with. If null, the panel will be empty.
+ * @param {{id: string, title: string, name: string, contents: string, files: Blob[], priority: number}|null} options.initialData - The initial data to populate the panel with. If null, the panel will be empty.
  * @param {string} options.type - The type of the panel, either
  * "add" for creating a new group or "edit" for editing an existing group.
  * @param {Function} options.onDelete - A callback function that will be called when the delete button is clicked. This is only applicable when the type is "edit".
  * @param {Function} options.onSave - A callback function that will be called when the save button is clicked. It will receive the data to be saved as an argument.
+ * @param {number} options.initPriority - The initial priority of the panel. This is only applicable when the type is "add".
  * @returns {HTMLElement} The DOM element representing the panel group.
  */
 function drawPanelGroup({
@@ -51,6 +52,7 @@ function drawPanelGroup({
   type = "add",
   onDelete,
   onSave,
+  initPriority = 1,
 }) {
   try {
     const id = initialData?.id || randomID();
@@ -89,6 +91,7 @@ function drawPanelGroup({
     });
 
     const inputTitle = document.createElement("input");
+    inputTitle.required = true;
     inputTitle.setAttribute("type", "text");
     inputTitle.setAttribute("id", `${prefix}input-title`);
     inputTitle.classList.add(`${prefix}input-outline`);
@@ -105,7 +108,7 @@ function drawPanelGroup({
     const labelName = document.createElement("label");
     labelName.setAttribute("for", `${prefix}input-name`);
     labelName.innerText = getTextWithLanguage({
-      vi: "Nhập tên (để bạn tham khảo, không liên quan đến nội dung bài viết) :",
+      vi: "Nhập tên (để tham khảo, không liên quan đến nội dung bài viết) :",
       en: "Enter name (for your reference, not related to post content) :",
     });
 
@@ -120,6 +123,30 @@ function drawPanelGroup({
 
     divFieldName.appendChild(labelName);
     divFieldName.appendChild(inputName);
+
+    const divFieldPriority = document.createElement("div");
+    divFieldPriority.classList.add(`${prefix}field-container`);
+    const labelPriority = document.createElement("label");
+    labelPriority.innerText = getTextWithLanguage({
+      vi: "Nhập độ ưu tiên (ưu tiên nhỏ hơn, post bài sẽ được ưu tiên hơn):",
+      en: "Enter priority (lower priority, higher post priority) :",
+    });
+
+    const inputPriority = document.createElement("input");
+    inputPriority.setAttribute("type", "number");
+    inputPriority.setAttribute("id", `${prefix}input-priority`);
+    inputPriority.setAttribute("min", "1");
+    inputPriority.setAttribute("max", "99");
+    inputPriority.classList.add(`${prefix}input-outline`);
+    inputPriority.placeholder = "Example: 1, 2, 3, ...";
+    if (initialData) {
+      inputPriority.value = Number(initialData?.priority) || "";
+    } else {
+      inputPriority.value = initPriority;
+    }
+
+    divFieldPriority.appendChild(labelPriority);
+    divFieldPriority.appendChild(inputPriority);
 
     const divFieldContent = document.createElement("div");
     divFieldContent.classList.add(`${prefix}field-container`);
@@ -202,9 +229,29 @@ function drawPanelGroup({
 
     divInner.appendChild(divFieldTitle);
     divInner.appendChild(divFieldName);
+    divInner.appendChild(divFieldPriority);
     divInner.appendChild(divFieldContent);
     divInner.appendChild(divFieldFile);
     divInner.appendChild(divContainerPreviewImage);
+
+    const divError = document.createElement("div");
+    divError.classList.add("error");
+    divError.style.padding = "8px";
+    divError.style.color = "red";
+    divError.style.fontSize = "12px";
+    divError.style.fontWeight = "bold";
+    divError.style.display = "none";
+    divInner.appendChild(divError);
+
+    function handleError(message) {
+      if (!message) {
+        divError.style.display = "none";
+        return;
+      }
+      divError.textContent = message;
+      divError.style.display = "block";
+      divError.scrollIntoView({ block: "center" });
+    }
 
     let quillEditors = [];
 
@@ -273,7 +320,19 @@ function drawPanelGroup({
         name: inputName.value,
         contents: quillEditors.map((quill) => quill.root.innerHTML),
         files: blobs,
+        priority: Number(inputPriority.value || 1),
       };
+
+      if (!dataSave.title) {
+        handleError(
+          getTextWithLanguage({
+            vi: "Vui lòng nhập tiêu đề",
+            en: "Please enter title",
+          }),
+        );
+        return;
+      }
+      handleError(null);
 
       const dataSaveds = (await getDataSavedInStorage()) || [];
 
@@ -283,8 +342,8 @@ function drawPanelGroup({
         setDataSavedInStorage(dataSaveds);
         onSave?.();
         addLog({
-          vi: `Bạn vừa thêm dữ liệu nhóm "${dataSave.name}"`,
-          en: `You just added data of group "${dataSave.name}"`,
+          vi: `Bạn vừa thêm dữ liệu nhóm "${dataSave.name || dataSave.title}"`,
+          en: `You just added data of group "${dataSave.name || dataSave.title}"`,
         });
       }
 
@@ -377,6 +436,7 @@ function drawPanelGroup({
         inputFile.value = "";
         inputName.value = "";
         divContainerPreviewImage.innerHTML = "";
+        handleError(null);
       });
     }
 

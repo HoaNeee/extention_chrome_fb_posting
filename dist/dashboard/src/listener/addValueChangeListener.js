@@ -1,4 +1,3 @@
-import { KEY_ADD_LOG } from "../../../contants/constant-extention.js";
 import {
   KEY_ALL_GROUPS,
   KEY_GROUPS_NEED_POST,
@@ -77,11 +76,6 @@ export default function addValueChangeListener(cb) {
                 });
               }
             }
-            // if (key === KEY_SCHEDULER) {
-            //   if (newVal.isScheduler) {
-            //     // clearAndCreateSchedulerAlarm();
-            //   }
-            // }
             if (key === KEY_IS_TEST) {
               setIsTest(newVal);
             }
@@ -96,6 +90,7 @@ export default function addValueChangeListener(cb) {
             if (key === KEY_HISTORY_LOGS) {
               handleHisoryLog(newVal);
             }
+
             updateDataSavedInfo();
             break;
           }

@@ -1,4 +1,5 @@
 import {
+  KEY_IS_SPAMMED,
   KEY_IS_TEST,
   KEY_NEXT_TIME_POST_WHEN_SPAMMED,
   SCHEDULER_TYPE,
@@ -322,6 +323,18 @@ async function getNextTimePostWhenSpammed() {
   return nextTime;
 }
 
+async function getCorrectNextTime() {
+  try {
+    const isSpammed = await DB_getValue(KEY_IS_SPAMMED);
+    if (isSpammed) {
+      return await getNextTimePostWhenSpammed();
+    }
+    return await getNextTimePost();
+  } catch (error) {
+    logError("Error at getCorrectNextTime method: ", error);
+    return null;
+  }
+}
 export {
   checkScheduler,
   getListFrameHours,
@@ -333,4 +346,5 @@ export {
   getNextTimePost,
   shuffleTimes,
   getNextTimePostWhenSpammed,
+  getCorrectNextTime,
 };

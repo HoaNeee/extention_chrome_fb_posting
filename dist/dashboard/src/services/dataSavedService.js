@@ -7,13 +7,13 @@ import { DataSavedDB } from "../utils/dataSavedDB.js";
 import { logError } from "../../../utils/utils.js";
 
 /**
- * @param {Array<{id: string, title: string, name: string, contents: string[], files: Blob[]}>} data array of data saved in storage
+ * @param {Array<{id: string, title: string, name: string, contents: string[], files: Blob[], priority: number}>} data array of data saved in storage
  * @returns no return
  */
 async function setDataSavedInStorage(data) {
   try {
     const db = new DataSavedDB(KEY_DATA_POST_SAVED);
-    await db.saveDataPosts(data || []);
+    await db.saveDataPosts(data);
   } catch (error) {
     logError("Error setDataSaved: " + error);
     throw new Error("Error setDataSaved: " + error);
@@ -21,7 +21,7 @@ async function setDataSavedInStorage(data) {
 }
 
 /**
- * @returns {Promise<Array<{id: string, title: string, name: string, contents: string[], files: Blob[]}>>} array of data saved in storage, if not exist return empty array
+ * @returns {Promise<Array<{id: string, title: string, name: string, contents: string[], files: Blob[], priority: number}>>} array of data saved in storage, if not exist return empty array
  */
 async function getDataSavedInStorage() {
   try {
@@ -40,7 +40,8 @@ async function getDataSavedInStorage() {
 }
 
 /**
- * @returns {Promise<Array<{id: string, title: string, name: string, groups: Array<{title: string, id_href: string}>}>>} all groups that need to be posted from saved data (group to be checked)
+ * Get all groups that need to be posted from saved data (group to be checked)
+ * @returns {Promise<Array<{id: string, title: string, name: string, contents: string[], files: Blob[], priority: number}>>} all groups that need to be posted from saved data (group to be checked)
  */
 async function getDataGroupsSavedNeedPost() {
   try {

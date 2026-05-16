@@ -28,7 +28,7 @@ async function getListGroupsService() {
 /**
  * Get the list of groups that need to be posted from storage
  * @returns {Promise<{
- * groups: Array<{id: string, title: string, name: string, groups: Array<{id_href: string, status: string}>}>,
+ * groups: Array<{id: string, title: string, name: string, priority: number, groups: Array<{id_href: string, status: string}>}>,
  * forceChange: boolean,
  * time: number}>
  * }
@@ -78,7 +78,7 @@ async function getAllDataGroupsInStorage() {
 
 /**
  *
- * @param {Array<{id: string, title: string, name: string, groups: Array<{title: string, id_href: string}>}>} list
+ * @param {Array<{id: string, title: string, name: string, priority: number, groups: Array<{title: string, id_href: string}>}>} list
  * @returns no return
  */
 async function setGroupsNeedPost(list) {
@@ -86,12 +86,12 @@ async function setGroupsNeedPost(list) {
     const needPosts = [];
 
     for (const item of list) {
-      const { id, title, name, groups } = item;
+      const { id, title, name, priority, groups } = item;
       const grs = groups.map((gr) => ({
         id_href: gr.id_href || gr.href,
         status: "pending",
       }));
-      needPosts.push({ id, title, name, groups: grs });
+      needPosts.push({ id, title, name, priority, groups: grs });
     }
 
     DB_setValue(KEY_GROUPS_NEED_POST, {

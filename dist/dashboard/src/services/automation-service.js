@@ -74,8 +74,8 @@ async function autoWithFirstTask() {
       }
 
       addLog({
-        vi: "Nhóm cần đăng đợt này: " + need.name,
-        en: "Groups need to post this batch: " + need.name,
+        vi: `Dữ liệu nhóm cần đăng đợt này: ${need.name} - số lượng nhóm: ${groups.length}`,
+        en: `Data of groups need to post this batch: ${need.name} - number of groups: ${groups.length}`,
       });
 
       //first task
@@ -147,6 +147,10 @@ async function automationHelper({ isTest = false } = {}) {
         type: "error",
       });
       setProgress(false);
+      addLog({
+        vi: "Tiện ích đã bị tạm dừng do đợt đăng bài này không có nhóm nào được chọn, hãy chọn nhóm để đăng.",
+        en: "The utility has been paused because no group was selected for this batch, please select a group to post.",
+      });
       return;
     }
 
@@ -157,11 +161,19 @@ async function automationHelper({ isTest = false } = {}) {
     const isStop = await getIsStopTaskInStorage();
     if (isStop) {
       showNotify({ message: "The task has been stopped", type: "error" });
+      addLog({
+        vi: "Tiện ích đã bị tạm dừng.",
+        en: "The utility has been paused.",
+      });
       return;
     }
 
     if (!listGroups.length) {
       showNotify({ message: "No group found", type: "error" });
+      addLog({
+        vi: "Tiện ích đã bị tạm dừng do không tìm thấy nhóm nào cần đăng bài.",
+        en: "The utility has been paused because no group was found for this batch.",
+      });
       setProgress(false);
       return;
     }
@@ -172,17 +184,27 @@ async function automationHelper({ isTest = false } = {}) {
       const title = data.title;
       const id = data.id;
       const name = data.name || "";
+      const priority = data.priority || 1;
       const listGroupsMatch = getGroupsMatch({
         title,
         listGroups,
         titleStrictlyMatch,
       });
 
-      list.push({ id, title, name, groups: listGroupsMatch });
+      list.push({ id, title, name, priority, groups: listGroupsMatch });
     }
 
-    //sort by groups length asc
+    // //sort by groups length asc
     list = list.sort((a, b) => {
+      if (
+        a.priority !== b.priority &&
+        a.priority !== undefined &&
+        b.priority !== undefined &&
+        a.priority !== null &&
+        b.priority !== null
+      ) {
+        return a.priority - b.priority;
+      }
       return a.groups.length - b.groups.length;
     });
 

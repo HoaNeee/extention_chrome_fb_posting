@@ -1,7 +1,16 @@
 import { KEY_CURRENT_WINDOW_ID } from "../contants/constant-extention.js";
-import { getTextWithLanguage, initLanguage, logError } from "../utils/utils.js";
+import {
+  getTextWithLanguage,
+  initLanguage,
+  logActions,
+  logError,
+} from "../utils/utils.js";
 import { dialogContainer } from "./src/draw_element/dialog.js";
-import { addLog, createPanelLog } from "./src/draw_element/panel-log.js";
+import {
+  addLog,
+  createPanelLog,
+  scrollHistoryLogs,
+} from "./src/draw_element/panel-log.js";
 import { createPanel } from "./src/draw_element/panel.js";
 import {
   disabledElement,
@@ -10,6 +19,11 @@ import {
 } from "./src/helpers/elementDom.js";
 import { initialData } from "./src/helpers/initial.js";
 import addValueChangeListener from "./src/listener/addValueChangeListener.js";
+import {
+  getDataGroupsSavedNeedPost,
+  getDataSavedInStorage,
+  setDataSavedInStorage,
+} from "./src/services/dataSavedService.js";
 import { DB_setValue } from "./src/utils/api-helper.js";
 
 async function main() {
@@ -17,6 +31,8 @@ async function main() {
     await initLanguage();
 
     const currentWindow = await chrome.windows.getCurrent();
+
+    // logActions(currentWindow);
 
     DB_setValue(KEY_CURRENT_WINDOW_ID, currentWindow.id);
 
@@ -33,6 +49,7 @@ async function main() {
       root.style.display = "none";
       root.style.pointerEvents = "none";
     }
+    migrateDataSaved();
     createPanel(mainElement);
     createPanelLog(mainElement);
     await initialData(mainElement);
@@ -120,8 +137,15 @@ function changeTab({ tabValue = "dashboard", displayValue = "block" } = {}) {
     }
   });
 
+  if (tabValue === "logs") {
+    setTimeout(() => {
+      scrollHistoryLogs();
+    }, 0);
+  }
+
   allTabs.forEach((tab) => {
-    if (tab.getAttribute("data-tab-value") === tabValue) {
+    const tabValueCurrent = tab.getAttribute("data-tab-value");
+    if (tabValueCurrent === tabValue) {
       tab.style.display = displayValue;
       tab.style.pointerEvents = "auto";
     } else {
@@ -141,6 +165,22 @@ function drawTab() {
     </ul>
   `;
   return div;
+}
+
+async function migrateDataSaved() {
+  try {
+    const dataSaved = await getDataSavedInStorage();
+    let prio = 1;
+    for (const data of dataSaved || []) {
+      if (data.priority === null || data.priority === undefined) {
+        data.priority = prio;
+        prio++;
+      }
+    }
+    setDataSavedInStorage(dataSaved);
+  } catch (error) {
+    logError("Error at migrate DataSaved", error);
+  }
 }
 
 main();
