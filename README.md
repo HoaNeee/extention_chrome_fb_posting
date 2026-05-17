@@ -1,3 +1,5 @@
+## This repository was be stoped update, i move it to new repo, this file for reference: http://github.com/HoaNeee/chrome_extention_FB_helper
+
 # This is Posting Simulator Many Groups for facebook
 
 If you need script watch change to build a one file script (Ex: content.js), run command
